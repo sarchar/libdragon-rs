@@ -1,0 +1,9 @@
+[build]
+target = "mips-nintendo64-none.json"
+
+[target."mips-nintendo64-none"]
+rustflags = ["-Clto", "-Cembed-bitcode", "-Clink-arg=--allow-multiple-definition"]
+
+[unstable]
+build-std = ["std", "core", "alloc", "panic_abort"]
+

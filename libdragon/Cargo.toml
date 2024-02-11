@@ -1,0 +1,10 @@
+[package]
+name = "libdragon"
+version = "0.1.0"
+edition = "2021"
+links = "libdragon"
+build = "build.rs"
+rust-version.workspace = true
+
+[dependencies]
+libdragon-sys = { path = "../libdragon-sys" }

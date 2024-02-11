@@ -1,0 +1,3 @@
+[submodule "libdragon-sys/libdragon"]
+	path = libdragon-sys/libdragon
+	url = https://github.com/sarchar/libdragon

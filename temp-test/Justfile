@@ -1,0 +1,13 @@
+set dotenv-filename := ".libdragon-sys-env"
+
+default:
+    @echo Nothing to do
+
+finish-rom:
+    @"$DEP_LIBDRAGON_SYS_OBJCOPY" -O binary "$ELF_FILE" "$ELF_FILE.bin"
+    @"$DEP_LIBDRAGON_SYS_N64TOOL" -t "GAME" -h "$DEP_LIBDRAGON_SYS_HEADER" \
+        -o "$ELF_FILE.z64" -l 1M "$ELF_FILE.bin"
+    @"$DEP_LIBDRAGON_SYS_CHKSUM64" "$ELF_FILE.z64"
+    @echo
+    @echo "ROM is in $ELF_FILE.z64"
+

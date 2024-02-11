@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "libdragon-sys",
+    "temp-test",
+]
+
+package.rust-version = "1.75.0"
+resolver = "2"
+
