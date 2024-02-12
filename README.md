@@ -21,6 +21,11 @@ Install `just`
 cargo install just
 ```
 
+You'll probably need several dependencies:
+```bash
+apt-get install clang build-essential
+```
+
 Build release
 ```bash
 just build-release
