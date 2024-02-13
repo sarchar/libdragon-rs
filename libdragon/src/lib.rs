@@ -1,18 +1,18 @@
 #![feature(restricted_std)]
 
 mod allocator;
-pub mod console;
 
-pub use libdragon_sys::*;
+pub mod console;
+pub mod debug;
 
 extern "C" {
     // keep rust optimizer from removing the entry point
     fn _start() -> !;
 
-    fn __getreent() -> *mut _reent;
+    fn __getreent() -> *mut libdragon_sys::_reent;
 }
 
-fn get_stderr() -> *mut __FILE {
+fn get_stderr() -> *mut libdragon_sys::__FILE {
     unsafe { (*__getreent())._stderr }
 }
 

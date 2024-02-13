@@ -4,13 +4,13 @@
 use libdragon::*;
 use libdragon::{println, eprintln};
 
+use libdragon::debug;
 use libdragon::console::{self, RenderMode};
 
 #[no_mangle]
 extern "C" fn main() -> ! {
-    unsafe {
-        debug_init_isviewer();
-    }
+    // enable ISViewer, so eprintln calls are displayed there
+    debug::init_features(debug::FEATURE_LOG_ISVIEWER);
 
     console::init();
     console::set_render_mode(RenderMode::Manual);
