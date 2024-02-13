@@ -4,20 +4,23 @@
 use libdragon::*;
 use libdragon::{println, eprintln};
 
+use libdragon::console::{self, RenderMode};
+
 #[no_mangle]
 extern "C" fn main() -> ! {
     unsafe {
         debug_init_isviewer();
-        console_init();
-        console_set_render_mode(RENDER_MANUAL as i32);
     }
+
+    console::init();
+    console::set_render_mode(RenderMode::Manual);
     
-    eprintln!("Hello from rust! Here's a number: {}      ", 5u32);
+    eprintln!("Hello from rust! Here's a number: {}", 5u32);
 
     loop {
-        unsafe { console_clear(); }
+        console::clear();
         println!("Hello, rust!");
-        unsafe { console_render(); }
+        console::render();
     }
 }
 
