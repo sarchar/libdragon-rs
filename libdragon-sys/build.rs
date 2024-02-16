@@ -102,12 +102,14 @@ async fn main() -> Result<()> {
                 eprintln!("Build incomplete");
                 exit(1);
             }
+        } else {
+            eprintln!("Skipping toolchain build");
         }
     }
 
     // build libdragon
     let mut make = Command::new("make");
-    make.arg("-C").arg(libdragon_dir.clone().into_os_string());
+    make.arg("-C").arg(libdragon_dir.clone().into_os_string()).arg("clean").arg("tools-clean").arg("all");
     if make.execute_check_exit_status_code(0).is_err() {
         eprintln!("There was an error building libdragon");
         exit(1);

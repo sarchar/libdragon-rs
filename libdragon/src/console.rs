@@ -35,10 +35,12 @@ pub fn set_render_mode(mode: RenderMode) {
     }
 }
 
+//use crate::protect_gp;
+//use core::arch::asm;
 pub fn clear() {
-    unsafe {
-        libdragon_sys::console_clear();
-    }
+    //protect_gp! {
+    unsafe { libdragon_sys::console_clear(); }
+    //}
 }
 
 pub fn render() {

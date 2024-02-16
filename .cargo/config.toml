@@ -2,6 +2,10 @@
 target = "mips-nintendo64-none.json"
 
 [target."mips-nintendo64-none"]
+# gp-relative addressing is disabled 
+# to enable, add -Ctarget-feature=+noabicalls here and -mgpopt in mips-nintendo64-none.json
+# to right now, core does not build with these settings
+# currently, libdragon is built without gp address relaxation
 rustflags = ["-Clto", "-Cembed-bitcode", "-Clink-arg=--allow-multiple-definition"]
 
 [unstable]
