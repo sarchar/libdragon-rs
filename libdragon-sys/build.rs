@@ -109,7 +109,11 @@ async fn main() -> Result<()> {
 
     // build libdragon
     let mut make = Command::new("make");
-    make.arg("-C").arg(libdragon_dir.clone().into_os_string()).arg("clean").arg("tools-clean").arg("all");
+    make.arg("-C")
+        .arg(libdragon_dir.clone().into_os_string())
+        .arg(format!("BUILD_DIR={}", out_dir.clone().join("libdragon_build").display()))
+        .arg("libdragon")
+        .arg("tools");
     if make.execute_check_exit_status_code(0).is_err() {
         eprintln!("There was an error building libdragon");
         exit(1);
@@ -147,10 +151,9 @@ async fn main() -> Result<()> {
 
     // set vars for parent crates
     println!("cargo:linker_script={}/linker.ld", src_dir.display());
-    println!("cargo:objcopy={}/bin/mips64-libdragon-elf-objcopy", toolchain_dir.display());
-    println!("cargo:n64tool={}/bin/n64tool", toolchain_dir.display());
+    println!("cargo:toolchain_bin={}/bin/mips64-libdragon-elf-", toolchain_dir.display());
+    println!("cargo:n64_tooldir={}/bin", toolchain_dir.display());
     println!("cargo:header={}/mips64-libdragon-elf/lib/header", toolchain_dir.display());
-    println!("cargo:chksum64={}/bin/chksum64", toolchain_dir.display());
 
     Ok(())
 }

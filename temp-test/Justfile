@@ -4,10 +4,13 @@ default:
     @echo Nothing to do
 
 finish-rom:
-    @"$DEP_LIBDRAGON_SYS_OBJCOPY" -O binary "$ELF_FILE" "$ELF_FILE.bin"
-    @"$DEP_LIBDRAGON_SYS_N64TOOL" -t "GAME" -h "$DEP_LIBDRAGON_SYS_HEADER" \
-        -o "$ELF_FILE.z64" -l 1M "$ELF_FILE.bin"
-    @"$DEP_LIBDRAGON_SYS_CHKSUM64" "$ELF_FILE.z64"
+    @"$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64sym "$ELF_FILE" "$ELF_FILE.sym"
+    @cp "$ELF_FILE" "$ELF_FILE.stripped"
+    @"$DEP_LIBDRAGON_SYS_TOOLCHAIN_BIN"strip "$ELF_FILE.stripped"
+
+    @"$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64tool -t "GAME" \
+        -o "$ELF_FILE.z64" -l 1M --align 256 "$ELF_FILE.stripped" --align 8 "$ELF_FILE.sym" --align 8
+
     @echo
     @echo "ROM is in $ELF_FILE.z64"
 

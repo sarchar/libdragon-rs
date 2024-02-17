@@ -1,28 +1,37 @@
-ENTRY(_start)
+/* ========================================================================
+ *
+ * n64.ld -- Libdragon linker script
+ *
+ * Originally based on n64ld.x, developed by Frank Somers <frank@g0dev.com>,
+ * with modifications by hcs (halleyscometsoftware@hotmail.com),
+ * released under the Unlicense.
+ * ========================================================================
+ */
 
-__kseg0_start = 0x80000000;
+OUTPUT_FORMAT ("elf32-ntradbigmips", "elf32-bigmips", "elf32-littlemips")
+OUTPUT_ARCH (mips)
+EXTERN (_start)
+ENTRY (_start)
 
-/* Start address of code is 1K up in cached, unmapped RAM (KSEG0). We have
-* to be at least this far up in order to not interfere with the cart
-* boot code which is copying it down from the cart
-*/
-__libdragon_text_start  = __kseg0_start + 0x400;
-
-MEMORY
+PHDRS
 {
-    mem : ORIGIN = __kseg0_start, LENGTH = 4M
+    irq PT_LOAD AT ( 0x80000000 );
+    main PT_LOAD AT ( 0x80000400 );
 }
 
 SECTIONS {
-    . = 0x80000400;
-    __boot_start = .;
+    .intvectors 0x80000000 : {
+        . = ALIGN(32);
+        KEEP(*(.intvectors))
+        __intvectors_end = .;
+    } :irq
 
-    .boot __libdragon_text_start : {
+    /* The text section carries the app code and its relocation addr is
+    * the first byte of the cart domain in cached, unmapped memory
+    */
+    .text 0x80000400 : {
         *(.boot)
         . = ALIGN(16);
-    } > mem
-
-    .text : {
         __text_start = .;
         *(.text)
         *(.text.*)
@@ -30,15 +39,16 @@ SECTIONS {
         *(.fini)
         *(.gnu.linkonce.t.*)
         . = ALIGN(16);
-    } > mem
+        __text_end  = .;
+    } :main
 
-    .eh_frame_hdr : { *(.eh_frame_hdr) } > mem
-    .eh_frame : { 
-     	__EH_FRAME_BEGIN__ = .; /* Define symbol for accessing eh_frame section */
-     	KEEP (*(.eh_frame)) 
-     } > mem
-    .gcc_except_table : { *(.gcc_except_table*) } > mem
-    .jcr : { KEEP (*(.jcr)) } > mem
+   .eh_frame_hdr : { *(.eh_frame_hdr) }
+   .eh_frame : { 
+		__EH_FRAME_BEGIN__ = .; /* Define symbol for accessing eh_frame section */
+		KEEP (*(.eh_frame)) 
+	}
+   .gcc_except_table : { *(.gcc_except_table*) } 
+   .jcr : { KEEP (*(.jcr)) } 
 
     .rodata : {
         *(.rdata)
@@ -46,7 +56,7 @@ SECTIONS {
         *(.rodata.*)
         *(.gnu.linkonce.r.*)
         . = ALIGN(8);
-    } > mem
+    }
 
     /* This is important to keep __CTOR_END__ consistent */
     . = ALIGN(4);
@@ -72,17 +82,27 @@ SECTIONS {
 
         here, and g++ seem to insert it at __CTOR_END__ */
         __CTOR_END__ = .;
-    } > mem
+    }
 
     . = ALIGN(8);
 
+    /* Data section has relocation address at start of RAM in cached,
+    * unmapped memory, but is loaded just at the end of the text segment,
+    * and must be copied to the correct location at startup
+    * Gather all initialised data together.  The memory layout
+    * will place the global initialised data at the lowest addrs.
+    * The lit8, lit4, sdata and sbss sections have to be placed
+    * together in that order from low to high addrs with the _gp symbol
+    * positioned (aligned) at the start of the sdata section.
+    * We then finish off with the standard bss section
+    */
     .data : {
+        __data_start = .;
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
-	    __data_end = .;
-    } > mem
+    }
 
     /* Small data START */
 
@@ -92,16 +112,16 @@ SECTIONS {
         *(.sdata.*)
         *(.gnu.linkonce.s.*)
         . = ALIGN(8);
-    } > mem
+    }
 
     .lit8 : {
         *(.lit8)
         . = ALIGN(8);
-    } > mem
+    }
     .lit4 : {
         *(.lit4)
         . = ALIGN(8);
-    } > mem
+    }
 
     . = ALIGN(8);
     __data_end = .;
@@ -110,41 +130,29 @@ SECTIONS {
     . = ALIGN(8);
     __rom_end = .;
 
-    .sbss (NOLOAD) : {
+    .sbss : {
          __bss_start = .;
         *(.sbss)
         *(.sbss.*)
         *(.gnu.linkonce.sb.*)
         *(.scommon)
         *(.scommon.*)
-    } > mem
+    }
 
     /* Small data END */
 
+    . = ALIGN(8);
     .bss : {
-        __bss_start = .;
         *(.bss)
         *(.bss*)
         *(.gnu.linkonce.b.*)
         *(COMMON)
         . = ALIGN(8);
-        __bss_end = .;
-    } > mem
+         __bss_end = .;
+    }
 
     . = ALIGN(8);
 
-    /DISCARD/ : {
-        *(.MIPS.*)
-        *(.comment)
-        *(.mdebug.*)
-        *(.pdr)
-        *(.reginfo)
-		
-        /*
-         * We may need the global offset table some day.
-         * Our target is currently set with a static relocation-model, so this
-         * might not be needed after all.
-         */
-        *(.got)
-    }
+    /* Deprecated */
+    end = .;
 }
