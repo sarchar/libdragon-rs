@@ -30,8 +30,11 @@ extern "C" fn main() -> ! {
 
         for i in 0..3 {
             if present[i] { 
-                println!("keys_down[{i}] = {:?}", keys_down[i]); 
-                eprintln!("keys_down[{i}] = {:?}", keys_down[i]); 
+                let _ = controller::get_accessories_present();
+                let acc = controller::identify_accessory(i);
+
+                println!("keys_down[{i}] = {:?}, acc = {:?}", keys_down[i], acc); 
+                eprintln!("keys_down[{i}] = {:?}, acc = {:?}", keys_down[i], acc); 
 
                 if keys_down[i].A {
                     controller::rumble_start(i);

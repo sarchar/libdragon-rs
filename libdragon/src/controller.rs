@@ -44,6 +44,14 @@ impl From<libdragon_sys::SI_condat> for ControllerData {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum Accessory {
+    None,
+    MemPak,
+    RumblePak,
+    Vru,
+    TransferPak,
+}
 
 pub fn init() {
     unsafe {
@@ -113,3 +121,26 @@ pub fn rumble_stop(i: usize) {
         libdragon_sys::rumble_stop(i as ::std::os::raw::c_int);
     }
 }
+
+pub fn get_accessories_present() -> u32 {
+    unsafe {
+        let mut cd: ::std::mem::MaybeUninit<libdragon_sys::controller_data> = ::std::mem::MaybeUninit::uninit();
+        libdragon_sys::get_accessories_present(cd.as_mut_ptr()) as u32
+    }
+}
+
+pub fn identify_accessory(i: usize) -> Accessory { 
+    let accessory_id = unsafe {
+        libdragon_sys::identify_accessory(i as ::std::os::raw::c_int) as u32
+    };
+
+    match accessory_id {
+        libdragon_sys::ACCESSORY_NONE        => Accessory::None,
+        libdragon_sys::ACCESSORY_MEMPAK      => Accessory::MemPak,
+        libdragon_sys::ACCESSORY_RUMBLEPAK   => Accessory::RumblePak,
+        libdragon_sys::ACCESSORY_VRU         => Accessory::Vru,
+        libdragon_sys::ACCESSORY_TRANSFERPAK => Accessory::TransferPak,
+        _ => todo!("unknown accessory ID"),
+    }
+}
+
