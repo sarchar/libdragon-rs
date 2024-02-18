@@ -150,6 +150,7 @@ async fn main() -> Result<()> {
             .expect("Couldn't write bindings!");
 
     // set vars for parent crates
+    println!("cargo:n64_inst={}", toolchain_dir.display());
     println!("cargo:linker_script={}/linker.ld", src_dir.display());
     println!("cargo:toolchain_bin={}/bin/mips64-libdragon-elf-", toolchain_dir.display());
     println!("cargo:n64_tooldir={}/bin", toolchain_dir.display());
