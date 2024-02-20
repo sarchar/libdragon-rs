@@ -6,8 +6,8 @@ use std::ffi::CString;
 mod allocator;
 
 pub mod console;
-pub mod controller;
 pub mod debug;
+pub mod joypad;
 
 extern "C" {
     static _gp: ::std::os::raw::c_int;

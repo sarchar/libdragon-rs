@@ -24,7 +24,7 @@ fn main() -> std::io::Result<()> {
     let pkg_name = env::var("CARGO_PKG_NAME").unwrap();
     writeln!(&mut fp, "ELF_FILE={}", out_dir.join("..").join("..").join("..").canonicalize()?.join(pkg_name).display())?;
 
-    // Set N64_INST
+    // Export N64_INST
     writeln!(&mut fp, "N64_INST={}", env::var("DEP_LIBDRAGON_SYS_N64_INST").unwrap())?;
 
     // Pass the linker script to the linker
