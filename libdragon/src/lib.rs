@@ -1,4 +1,5 @@
 #![feature(restricted_std)]
+#![feature(io_error_more)]
 #![feature(asm_experimental_arch)]
 
 use std::ffi::CString;

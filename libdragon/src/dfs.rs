@@ -1,4 +1,3 @@
-
 use crate::*;
 
 const DFS_ESUCCESS: i32 = libdragon_sys::DFS_ESUCCESS as i32;
@@ -13,6 +12,13 @@ pub fn init(base_fs_loc: Option<u32>) -> Result<()> {
         err @ _ => {
             Err(LibDragonError::DfsError { error_code: err })
         }
+    }
+}
+
+pub fn rom_addr(path: &str) -> u32 {
+    let cpath = CString::new(path).unwrap();
+    unsafe {
+        libdragon_sys::dfs_rom_addr(cpath.as_ptr())
     }
 }
 
@@ -47,6 +53,64 @@ impl File {
             }
         }
     }
+
+    pub fn tell(&self) -> Result<u64> {
+        if let Some(ref fp) = self.fp {
+            let r = unsafe {
+                libdragon_sys::ftell(*fp)
+            };
+            if r < 0 {
+                Err(LibDragonError::IoError {
+                    error: std::io::Error::new(std::io::ErrorKind::BrokenPipe, "TODO: tell")
+                })
+            } else {
+                Ok(r as u64)
+            }
+        } else {
+            Err(LibDragonError::IoError {
+                error: std::io::Error::new(std::io::ErrorKind::NotFound, "TODO: tell")
+            })
+        }
+    }
+
+    pub fn eof(&self) -> Result<bool> {
+        if let Some(ref fp) = self.fp {
+            let r = unsafe {
+                libdragon_sys::feof(*fp)
+            };
+            if r < 0 {
+                Err(LibDragonError::IoError {
+                    error: std::io::Error::new(std::io::ErrorKind::BrokenPipe, "TODO: eof")
+                })
+            } else {
+                Ok(r != 0)
+            }
+        } else {
+            Err(LibDragonError::IoError {
+                error: std::io::Error::new(std::io::ErrorKind::NotFound, "TODO: eof")
+            })
+        }
+    }
+
+    pub fn size(&self) -> Result<u64> {
+        if let Some(ref fp) = self.fp {
+            let mut stat_data: ::std::mem::MaybeUninit<libdragon_sys::stat> = ::std::mem::MaybeUninit::uninit();
+            let r = unsafe {
+                libdragon_sys::fstat(libdragon_sys::fileno(*fp), stat_data.as_mut_ptr())
+            };
+            if r < 0 {
+                Err(LibDragonError::IoError {
+                    error: std::io::Error::new(std::io::ErrorKind::BrokenPipe, "TODO: size")
+                })
+            } else {
+                Ok(unsafe { stat_data.assume_init() }.st_size as u64)
+            }
+        } else {
+            Err(LibDragonError::IoError {
+                error: std::io::Error::new(std::io::ErrorKind::NotFound, "TODO: size")
+            })
+        }
+    }
 }
 
 impl Drop for File {
@@ -66,6 +130,34 @@ impl std::io::Read for File {
             Ok(read_size as usize)
         } else {
             Ok(0)
+        }
+    }
+}
+
+impl std::io::Seek for File {
+    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        if let Some(ref fp) = self.fp {
+            let (seek_pos, offset) = match pos {
+                std::io::SeekFrom::Start(n)   => (libdragon_sys::SEEK_SET, n as i64),
+                std::io::SeekFrom::End(n)     => (libdragon_sys::SEEK_END, n),
+                std::io::SeekFrom::Current(n) => (libdragon_sys::SEEK_CUR, n),
+            };
+            let r = unsafe {
+                libdragon_sys::fseek(*fp, offset as ::std::os::raw::c_long, seek_pos as ::std::os::raw::c_int)
+            };
+            if r < 0 {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::NotSeekable,
+                    "TODO: use the correct error"
+                ))
+            } else {
+                Ok(r as u64)
+            }
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "could not seek"
+            ))
         }
     }
 }
