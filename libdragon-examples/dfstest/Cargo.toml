@@ -1,0 +1,9 @@
+[package]
+name = "dfstest"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+rust-version.workspace = true
+
+[dependencies]
+libdragon = { path = "../../libdragon" }

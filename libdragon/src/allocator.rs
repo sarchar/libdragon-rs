@@ -14,9 +14,6 @@ unsafe impl GlobalAlloc for LibdragonAllocator {
         let mut size = layout.size();
 
         // alignment is a minimum of 4 (should it be 8?)
-        // It seems that something either in Rust or in C is not happy with non-4b-aligned
-        // pointers to text strings.  This only deals with half the problem, since static
-        // strings in Rust are still not aligned
         let alignment = std::cmp::max(4, layout.align());
 
         // size has to be a multiple of alignment

@@ -10,4 +10,4 @@ rustflags = ["-Clto", "-Cembed-bitcode", "-Clink-arg=--allow-multiple-definition
 
 [unstable]
 build-std = ["std", "core", "alloc", "panic_abort"]
-
+#build-std-features = []

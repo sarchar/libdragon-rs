@@ -265,6 +265,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dfstest"
+version = "0.1.0"
+dependencies = [
+ "libdragon",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
