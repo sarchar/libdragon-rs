@@ -3,15 +3,24 @@ default:
 
 build-release:
     cargo build --release
-    cd temp-test && just finish-rom
+
+    @for example in `ls libdragon-examples`; do \
+        cd "libdragon-examples/$example" && just build-release; \
+    done
 
 build-release-verbose:
     cargo build --release -vvv
-    cd temp-test && just finish-rom
+
+    @for example in `ls libdragon-examples`; do \
+        cd "libdragon-examples/$example" && just build-release-verbose; \
+    done
 
 build-release-toolchain:
     cargo build --release --features libdragon-sys/buildtoolchain -vvv
-    cd temp-test && just finish-rom
+
+    @for example in `ls libdragon-examples`; do \
+        cd "libdragon-examples/$example" && just build-release-verbose; \
+    done
 
 clean:
     cargo clean --release

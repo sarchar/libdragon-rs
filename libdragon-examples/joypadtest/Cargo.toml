@@ -1,5 +1,5 @@
 [package]
-name = "temp-test"
+name = "joypadtest"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
@@ -8,4 +8,4 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libdragon = { path = "../libdragon" }
+libdragon = { path = "../../libdragon" }

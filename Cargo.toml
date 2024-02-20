@@ -1,7 +1,12 @@
 [workspace]
 members = [
+    "libdragon",
     "libdragon-sys",
-    "temp-test",
+    "libdragon-examples/*",
+]
+default-members = [
+    "libdragon",
+    "libdragon-sys",
 ]
 
 package.rust-version = "1.75.0"

@@ -37,4 +37,4 @@ This will take a **long** time (30m-1hr depending on your system). If you want t
 just build-release-verbose
 ```
 
-In the end, a test ROM should be present at `./target/mips-nintendo64-none/release/temp-test.z64`
+In the end, example ROMs should be present as `./target/mips-nintendo64-none/release/*.z64`
