@@ -131,7 +131,7 @@ extern "C" fn main() -> ! {
 
     // enable ISViewer, so eprintln calls are displayed there
     // initialize access to the sd card if it exists
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_FILE_SD);
+    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB | debug::FEATURE_FILE_SD);
 
     console::init();
     console::set_render_mode(RenderMode::Manual);

@@ -50,7 +50,7 @@ pub fn init_features(features: u32) -> bool {
         ok = init_isviewer() || ok;
     }
     if (features & FEATURE_FILE_SD) != 0 {
-        ok = init_sdfs("sd:/", -1) || ok;
+        ok = init_sdfs("sd:/", 0) || ok;
     }
     if (features & FEATURE_LOG_SD) != 0 {
         ok = init_sdlog("sd:/libdragon.log", "a") || ok;
