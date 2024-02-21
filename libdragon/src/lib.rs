@@ -2,7 +2,7 @@
 #![feature(io_error_more)]
 #![feature(asm_experimental_arch)]
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString, OsStr, OsString};
 use core::panic::PanicInfo;
 
 mod allocator;
@@ -16,6 +16,7 @@ pub mod joypad;
 pub enum LibDragonError {
     DfsError { error_code: i32 },
     IoError { error: std::io::Error },
+    ErrnoError { errno: u32 },
 }
 
 pub type Result<T> = std::result::Result<T, LibDragonError>;
@@ -27,6 +28,10 @@ extern "C" {
     fn _start() -> !;
 
     fn __getreent() -> *mut libdragon_sys::_reent;
+}
+
+fn get_errno() -> u32 {
+    unsafe { (*__getreent())._errno as u32 }
 }
 
 fn get_stderr() -> *mut libdragon_sys::__FILE {
@@ -93,7 +98,8 @@ macro_rules! protect_gp {
     }
 }
 
-pub fn setup_panic() {
+// TODO Panic hook is not yet working - crashes before it's even called
+pub fn init_panic_hook() {
     std::panic::set_hook(Box::new(|info: &PanicInfo| {
         let (file, line) = match info.location() {
             Some(location) => {
@@ -119,4 +125,10 @@ pub fn setup_panic() {
     let _ = std::panic::catch_unwind(|| {
         eprintln!("unwind!");
     });
+}
+
+pub fn wait_ms(ms: u32) {
+    unsafe {
+        libdragon_sys::wait_ms(ms as ::std::os::raw::c_ulong);
+    }
 }

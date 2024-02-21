@@ -2,6 +2,9 @@ use crate::*;
 
 const DFS_ESUCCESS: i32 = libdragon_sys::DFS_ESUCCESS as i32;
 
+const DT_REG: i32 = libdragon_sys::DT_REG as i32;
+const DT_DIR: i32 = libdragon_sys::DT_DIR as i32;
+
 pub fn init(base_fs_loc: Option<u32>) -> Result<()> {
     let s = unsafe {
         libdragon_sys::dfs_init(base_fs_loc.unwrap_or(libdragon_sys::DFS_DEFAULT_LOCATION))
@@ -28,16 +31,20 @@ pub struct File {
 }
 
 impl File {
-    pub fn open(path: &str, mode: &str) -> Result<File> {
-        let cpath = CString::new(path).unwrap();
+    pub fn open(path: OsString, mode: &str) -> Result<File> {
+        // no as_bytes() on nintendo64
+        let osstr: &OsStr = &path;
+        let path_bytes: &[u8] = unsafe { std::mem::transmute(osstr) };
+        let cpath = CString::new(path_bytes).unwrap();
         let cmode = CString::new(mode).unwrap();
         let fp = unsafe {
             libdragon_sys::fopen(cpath.as_ptr(), cmode.as_ptr())
         };
     
         if fp == std::ptr::null_mut() {
+            let pathbuf = std::path::PathBuf::from(path);
             Err(LibDragonError::IoError {
-                error: std::io::Error::new(std::io::ErrorKind::NotFound, path),
+                error: std::io::Error::new(std::io::ErrorKind::NotFound, format!("{}", pathbuf.display())),
             })
         } else {
             Ok(File {
@@ -94,7 +101,7 @@ impl File {
 
     pub fn size(&self) -> Result<u64> {
         if let Some(ref fp) = self.fp {
-            let mut stat_data: ::std::mem::MaybeUninit<libdragon_sys::stat> = ::std::mem::MaybeUninit::uninit();
+            let mut stat_data: std::mem::MaybeUninit<libdragon_sys::stat> = std::mem::MaybeUninit::uninit();
             let r = unsafe {
                 libdragon_sys::fstat(libdragon_sys::fileno(*fp), stat_data.as_mut_ptr())
             };
@@ -158,6 +165,74 @@ impl std::io::Seek for File {
                 std::io::ErrorKind::NotFound,
                 "could not seek"
             ))
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum EntryType {
+    File,
+    Directory
+}
+
+pub struct Dir<'a> {
+    path: &'a str,
+    dir: libdragon_sys::dir_t,
+}
+
+impl<'a> Dir<'a> {
+    pub fn findfirst(path: &'a str) -> Result<Self> {
+        let cpath = CString::new(path).unwrap();
+        let mut dir: std::mem::MaybeUninit<libdragon_sys::dir_t> = std::mem::MaybeUninit::uninit();
+        let s = unsafe {
+            libdragon_sys::dir_findfirst(cpath.as_ptr(), dir.as_mut_ptr())
+        };
+        if s < 0 {
+            Err(LibDragonError::IoError {
+                error: std::io::Error::new(std::io::ErrorKind::NotFound, path),
+            })
+        } else {
+            Ok(Self {
+                path: path,
+                dir: unsafe { dir.assume_init() }
+            })
+        }
+    }
+
+    pub fn findnext(&mut self) -> Result<()> {
+        let cpath = CString::new(self.path).unwrap();
+        let s = unsafe {
+            libdragon_sys::dir_findnext(cpath.as_ptr(), (&mut self.dir) as *mut libdragon_sys::dir_t)
+        };
+        if s < 0 {
+            match get_errno() {
+                libdragon_sys::ENOENT => Err(LibDragonError::IoError {
+                    error: std::io::Error::new(std::io::ErrorKind::NotFound, "No more entries"),
+                }),
+                errno @ _ => Err(LibDragonError::ErrnoError {
+                    errno: errno
+                }),
+            }
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn d_name(&self) -> std::path::PathBuf {
+        let slice = unsafe { CStr::from_ptr(self.dir.d_name.as_ptr()) };
+        // so I guess from_bytes is only availble on cfg(unix)
+        // let osstr = OsStr::from_bytes(slice.to_bytes());
+        let osstr: &OsStr = unsafe { std::mem::transmute(slice.to_bytes()) };
+        osstr.into()
+    }
+
+    pub fn d_type(&self) -> Result<EntryType> {
+        match self.dir.d_type {
+            DT_REG => Ok(EntryType::File),
+            DT_DIR => Ok(EntryType::Directory),
+            _ => Err(LibDragonError::IoError {
+                        error: std::io::Error::new(std::io::ErrorKind::NotFound, "invalid d_type value")
+            })
         }
     }
 }
