@@ -1,7 +1,7 @@
 #![no_main]
 #![feature(restricted_std)]
 
-use std::io::{Read, Seek};
+use std::io::Read;
 use std::path::PathBuf;
 
 use libdragon::*;
@@ -130,7 +130,8 @@ extern "C" fn main() -> ! {
     libdragon::init_panic_hook();
 
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER);
+    // initialize access to the sd card if it exists
+    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_FILE_SD);
 
     console::init();
     console::set_render_mode(RenderMode::Manual);

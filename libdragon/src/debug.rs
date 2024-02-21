@@ -1,4 +1,7 @@
 #![allow(non_upper_case_globals)]
+
+use crate::*;
+
 pub const FEATURE_LOG_USB     : u32 = 1 << 0;
 pub const FEATURE_LOG_ISVIEWER: u32 = 1 << 1;
 pub const FEATURE_LOG_SD      : u32 = 1 << 2;
@@ -18,14 +21,17 @@ pub fn init_isviewer() -> bool {
 }
 
 pub fn init_sdlog(filename: &str, openfmt: &str) -> bool {
+    let cfilename = CString::new(filename).unwrap();
+    let copenfmt = CString::new(openfmt).unwrap();
     unsafe {
-        libdragon_sys::debug_init_sdlog(format!("{}\0", filename).as_ptr() as *const i8, format!("{}\0", openfmt).as_ptr() as *const i8) 
+        libdragon_sys::debug_init_sdlog(cfilename.as_ptr(), copenfmt.as_ptr()) 
     }
 }
 
 pub fn init_sdfs(prefix: &str, npart: i32) -> bool {
+    let cprefix = CString::new(prefix).unwrap();
     unsafe {
-        libdragon_sys::debug_init_sdfs(format!("{}\0", prefix).as_ptr() as *const i8, npart as ::std::os::raw::c_int)
+        libdragon_sys::debug_init_sdfs(cprefix.as_ptr(), npart)
     }
 }
 
@@ -51,3 +57,5 @@ pub fn init_features(features: u32) -> bool {
     }
     ok
 }
+
+
