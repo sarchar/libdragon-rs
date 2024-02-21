@@ -31,7 +31,7 @@ pub fn set_debug(debug: bool) {
 
 pub fn set_render_mode(mode: RenderMode) {
     unsafe {
-        libdragon_sys::console_set_render_mode((mode as u8) as ::std::os::raw::c_int);
+        libdragon_sys::console_set_render_mode((mode as u8) as ::core::ffi::c_int);
     }
 }
 

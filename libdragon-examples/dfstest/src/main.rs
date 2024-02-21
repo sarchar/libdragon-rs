@@ -1,21 +1,19 @@
+#![no_std]
 #![no_main]
-#![feature(restricted_std)]
-
-use std::io::Read;
-use std::path::PathBuf;
 
 use libdragon::*;
-#[allow(unused_imports)]
-use libdragon::{print, println, eprintln};
+//#[allow(unused_imports)]
+//use libdragon::{print, println, eprintln};
 
-use libdragon::{joypad, debug, dfs};
+use libdragon::{joypad, debug};
 use libdragon::console::{self, RenderMode};
+use libdragon::dfs::{self, DfsPathBuf, Read};
 
 const MAX_LIST: usize = 20;
 
 #[derive(Debug)]
 struct Entry {
-    filename: PathBuf,
+    filename: DfsPathBuf,
     filetype: dfs::EntryType,
 }
 
@@ -71,21 +69,21 @@ impl DemoDir {
 
     fn sort(&mut self) {
         self.entries.sort_by(|a, b| {
-            if a.filetype == dfs::EntryType::Directory && b.filetype != dfs::EntryType::Directory { return std::cmp::Ordering::Less; }
-            if a.filetype != dfs::EntryType::Directory && b.filetype == dfs::EntryType::Directory { return std::cmp::Ordering::Greater; }
+            if a.filetype == dfs::EntryType::Directory && b.filetype != dfs::EntryType::Directory { return core::cmp::Ordering::Less; }
+            if a.filetype != dfs::EntryType::Directory && b.filetype == dfs::EntryType::Directory { return core::cmp::Ordering::Greater; }
             return a.filename.partial_cmp(&b.filename).unwrap()
         })
     }
 
     fn display(&self, cursor: usize, page: usize, max: usize) {
-        let max = std::cmp::min(max, self.entries.len());
+        let max = core::cmp::min(max, self.entries.len());
         if max == 0 {
             println!("No files in this dir...");
             return;
         }
 
-        let cursor = std::cmp::min(cursor, (page + max) - 1);
-        let cursor = std::cmp::max(cursor, page);
+        let cursor = core::cmp::min(cursor, (page + max) - 1);
+        let cursor = core::cmp::max(cursor, page);
 
         for i in page..(page + max) {
             if i == cursor {
@@ -107,12 +105,12 @@ impl DemoDir {
     }
 
     fn new_scroll_pos(&self, cursor: usize, page: usize, max: usize) -> (usize, usize) {
-        let max = std::cmp::min(max, self.entries.len());
+        let max = core::cmp::min(max, self.entries.len());
 
-        let cursor = std::cmp::max(0, std::cmp::min(cursor, self.entries.len() - 1));
+        let cursor = core::cmp::max(0, core::cmp::min(cursor, self.entries.len() - 1));
 
         // scrolled up
-        let page = std::cmp::min(page, cursor);
+        let page = core::cmp::min(page, cursor);
 
         // scrolled down
         let page = if cursor >= (page + max) {
@@ -127,24 +125,19 @@ impl DemoDir {
 
 #[no_mangle]
 extern "C" fn main() -> ! {
-    libdragon::init_panic_hook();
-
     // enable ISViewer, so eprintln calls are displayed there
     // initialize access to the sd card if it exists
     debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB | debug::FEATURE_FILE_SD);
+    //debug::init_features(debug::FEATURE_LOG_ISVIEWER);
 
     console::init();
     console::set_render_mode(RenderMode::Manual);
 
     joypad::init();
     
-    if let Err(e) = dfs::init(None) {
-        println!("Filesystem failed to start!");
-        println!("Error: {:?}", e);
-        loop {}
-    }
+    let _ = dfs::init(None).unwrap_or_else(|e| panic!("Filesystem failed to start: {:?}", e));
 
-    // std::io::Read and std::io::Seek are implemented on dfs::File ->
+    // io::Read and io::Seek are implemented on dfs::File ->
     //
     // let content = {
     //     eprintln!("hello.txt at ${:08X}", dfs::rom_addr("hello.txt"));
@@ -183,9 +176,9 @@ extern "C" fn main() -> ! {
         }
 
         if keys.c_right && dir.entries[cursor].filetype == dfs::EntryType::File {
-            let path = std::path::PathBuf::from(dir.current_path.clone())
+            let path = DfsPathBuf::from(dir.current_path.clone())
                                     .join(dir.entries[cursor].filename.clone());
-            let res = dfs::File::open(path.clone().into_os_string(), "r");
+            let res = dfs::File::open(&path, "r");
             match res {
                 Err(e) => {
                     println!("Failed to open {}: {:?}", path.display(), e);
@@ -244,18 +237,18 @@ extern "C" fn main() -> ! {
         }
 
         if keys.a && dir.entries[cursor].filetype == dfs::EntryType::Directory {
-            let path = std::path::PathBuf::from(dir.current_path.clone())
+            let path = DfsPathBuf::from(dir.current_path.clone())
                                     .join(dir.entries[cursor].filename.clone());
-            dir.change_directory(path.into_os_string().into_string().unwrap().as_str());
+            dir.change_directory(path.to_str().unwrap());
             page = 0;
             cursor = 0;
         }
 
         if keys.b {
-            let mut path = std::path::PathBuf::from(dir.current_path.clone());
+            let mut path = DfsPathBuf::from(dir.current_path.clone());
             if path.pop() {
                 // PathBuf doesn't understand rom://, so we fix it up
-                let mut s = path.into_os_string().into_string().unwrap();
+                let mut s = String::from(path.to_str().unwrap());
                 if s == "rom:" || s == "sd:" {
                     s.push_str("//");
                 } 

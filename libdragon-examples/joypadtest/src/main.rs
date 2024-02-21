@@ -1,5 +1,5 @@
+#![no_std]
 #![no_main]
-#![feature(restricted_std)]
 
 use libdragon::*;
 use libdragon::{println, eprintln};

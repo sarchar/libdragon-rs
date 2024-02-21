@@ -1,4 +1,4 @@
-use std::alloc::{GlobalAlloc, Layout};
+use core::alloc::{GlobalAlloc, Layout};
 
 pub use libdragon_sys::*;
 
@@ -14,7 +14,7 @@ unsafe impl GlobalAlloc for LibdragonAllocator {
         let mut size = layout.size();
 
         // alignment is a minimum of 4 (should it be 8?)
-        let alignment = std::cmp::max(4, layout.align());
+        let alignment = core::cmp::max(4, layout.align());
 
         // size has to be a multiple of alignment
         size = (size + (alignment - 1)) & !(alignment - 1);

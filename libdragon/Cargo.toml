@@ -8,3 +8,6 @@ rust-version.workspace = true
 
 [dependencies]
 libdragon-sys = { path = "../libdragon-sys" }
+cstr_core = "0.2.6"
+typed-path = { version = "0.7", default-features = false }
+embedded-io = "0.6.1"

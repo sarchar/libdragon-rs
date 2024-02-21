@@ -1,9 +1,19 @@
-#![feature(restricted_std)]
-#![feature(io_error_more)]
+#![no_std]
 #![feature(asm_experimental_arch)]
+#![feature(panic_info_message)]
 
-use std::ffi::{CStr, CString, OsStr, OsString};
+use cstr_core::{CStr, CString};
 use core::panic::PanicInfo;
+
+// Re-exports of common types and macros
+extern crate alloc;
+pub use alloc::borrow::ToOwned;
+pub use alloc::string::String;
+pub use alloc::string::ToString;
+pub use alloc::vec;
+pub use alloc::vec::Vec;
+pub use alloc::boxed::Box;
+pub use alloc::format;
 
 mod allocator;
 
@@ -14,15 +24,15 @@ pub mod joypad;
 
 #[derive(Debug)]
 pub enum LibDragonError {
-    DfsError { error_code: i32 },
-    IoError { error: std::io::Error },
+    DfsError { error: dfs::DfsError },
+    IoError { },
     ErrnoError { errno: u32 },
 }
 
-pub type Result<T> = std::result::Result<T, LibDragonError>;
+pub type Result<T> = core::result::Result<T, LibDragonError>;
 
 extern "C" {
-    static _gp: ::std::os::raw::c_int;
+    static _gp: ::core::ffi::c_int;
 
     // keep rust optimizer from removing the entry point
     fn _start() -> !;
@@ -36,6 +46,12 @@ fn get_errno() -> u32 {
 
 fn get_stderr() -> *mut libdragon_sys::__FILE {
     unsafe { (*__getreent())._stderr }
+}
+
+pub fn wait_ms(ms: u32) {
+    unsafe {
+        libdragon_sys::wait_ms(ms as ::core::ffi::c_ulong);
+    }
 }
 
 pub fn libdragon_fprintf(msg: &str) -> i32 {
@@ -83,7 +99,7 @@ macro_rules! println {
 #[macro_export]
 macro_rules! protect_gp {
     ( $($s:stmt);* ) => {
-        let oldgp: *const ::std::os::raw::c_void;
+        let oldgp: *const ::core::ffi::c_void;
         unsafe { 
             let gp = &crate::_gp;
             asm!(".set noat", "move {0}, $gp", "move $gp, {1}", out(reg) oldgp, in(reg) gp);
@@ -98,37 +114,27 @@ macro_rules! protect_gp {
     }
 }
 
-// TODO Panic hook is not yet working - crashes before it's even called
-pub fn init_panic_hook() {
-    std::panic::set_hook(Box::new(|info: &PanicInfo| {
-        let (file, line) = match info.location() {
-            Some(location) => {
-                (CString::new(location.file()).unwrap(), location.line())
-            },
-            _ => (CString::new("<unknown>").unwrap(), 0)
-        };
-    
-        let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
-            CString::new(*s).unwrap()
-        } else {
-            CString::new("<unknown>").unwrap()
-        };
-    
-        let failedexpr = CString::new("Rust panic!").unwrap();
-        let fmt = CString::new("%s").unwrap();
-    
-        unsafe {
-            libdragon_sys::debug_assert_func_f(file.as_ptr(), line as i32, std::ptr::null(), failedexpr.as_ptr(), fmt.as_ptr(), msg.as_ptr());
-        }
-    }));
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    let (file, line) = match info.location() {
+        Some(location) => {
+            (CString::new(location.file()).unwrap(), location.line())
+        },
+        _ => (CString::new("<unknown>").unwrap(), 0)
+    };
 
-    let _ = std::panic::catch_unwind(|| {
-        eprintln!("unwind!");
-    });
-}
+    let msg = if let Some(args) = info.message() {
+        CString::new(format!("{}", args).as_str()).unwrap()
+    } else {
+        CString::new("<unknown>").unwrap()
+    };
 
-pub fn wait_ms(ms: u32) {
+    let failedexpr = CString::new("<rust panic>").unwrap();
+    let fmt = CString::new("%s").unwrap();
+
     unsafe {
-        libdragon_sys::wait_ms(ms as ::std::os::raw::c_ulong);
+        libdragon_sys::debug_assert_func_f(file.as_ptr(), line as i32, core::ptr::null(), failedexpr.as_ptr(), fmt.as_ptr(), msg.as_ptr());
     }
 }
+
+

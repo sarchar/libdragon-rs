@@ -142,6 +142,7 @@ async fn main() -> Result<()> {
                         .clang_arg(format!("-I{}/mips64-libdragon-elf/include", toolchain_dir.display()))
                         .header("wrapper.h")
                         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+                        .use_core()
                         .generate()
                         .expect("Unable to generate a binding");
 

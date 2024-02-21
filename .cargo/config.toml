@@ -9,5 +9,5 @@ target = "mips-nintendo64-none.json"
 rustflags = ["-Clto", "-Cembed-bitcode", "-Clink-arg=--allow-multiple-definition"]
 
 [unstable]
-build-std = ["std", "core", "alloc", "panic_abort"]
+build-std = ["core", "alloc", "panic_abort"]
 #build-std-features = []

@@ -1,4 +1,4 @@
-#![feature(restricted_std)]
+#![no_std]
 #![feature(alloc_error_handler)]
 
 #![allow(non_upper_case_globals)]
