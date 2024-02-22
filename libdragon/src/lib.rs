@@ -20,6 +20,8 @@ mod panic;
 pub mod console;
 pub mod debug;
 pub mod dfs;
+pub mod display;
+pub mod graphics;
 pub mod joypad;
 
 #[derive(Debug)]

@@ -9,6 +9,10 @@ build-release:
     cargo build --release
     @just build-examples-release
 
+build-verbose:
+    cargo build --verbose
+    @just build-examples-verbose
+
 build-release-verbose:
     cargo build --release -vvv
     @just build-examples-release-verbose
