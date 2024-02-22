@@ -113,7 +113,7 @@ impl File {
         }
     }
 
-    pub fn size(&self) -> Result<u64> {
+    pub fn size(&self) -> Result<usize> {
         if let Some(ref fp) = self.fp {
             let mut stat_data: core::mem::MaybeUninit<libdragon_sys::stat> = core::mem::MaybeUninit::uninit();
             let r = unsafe {
@@ -122,7 +122,7 @@ impl File {
             if r < 0 {
                 Err(LibDragonError::DfsError { error: DfsError::InvalidInput })
             } else {
-                Ok(unsafe { stat_data.assume_init() }.st_size as u64)
+                Ok(unsafe { stat_data.assume_init() }.st_size as usize)
             }
         } else {
             Err(LibDragonError::DfsError { error: DfsError::BrokenPipe })

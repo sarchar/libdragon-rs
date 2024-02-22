@@ -1,5 +1,6 @@
 #![allow(non_upper_case_globals)]
 
+#[derive(Debug, Clone, Copy)]
 pub enum BitDepth {
     Bpp16,
     Bpp32,
@@ -24,6 +25,7 @@ impl From<libdragon_sys::bitdepth_t> for BitDepth {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum Gamma {
     None,
     Correct,
@@ -41,6 +43,7 @@ impl Into<libdragon_sys::gamma_t> for Gamma {
 }
 
 
+#[derive(Debug, Clone, Copy)]
 pub enum FilterOptions {
     Disabled,
     Resample,
@@ -69,6 +72,7 @@ static RESOLUTION_640x240: &libdragon_sys::resolution_t = unsafe { &libdragon_sy
 static RESOLUTION_512x480: &libdragon_sys::resolution_t = unsafe { &libdragon_sys::RESOLUTION_512x480 };
 static RESOLUTION_640x480: &libdragon_sys::resolution_t = unsafe { &libdragon_sys::RESOLUTION_640x480 };
 
+#[derive(Debug, Clone, Copy)]
 pub enum Resolution {
     _256x240,
     _320x240,
