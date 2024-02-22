@@ -3,7 +3,6 @@
 #![feature(panic_info_message)]
 
 use cstr_core::{CStr, CString};
-use core::panic::PanicInfo;
 
 // Re-exports of common types and macros
 extern crate alloc;
@@ -16,6 +15,7 @@ pub use alloc::boxed::Box;
 pub use alloc::format;
 
 mod allocator;
+mod panic;
 
 pub mod console;
 pub mod debug;
@@ -25,7 +25,6 @@ pub mod joypad;
 #[derive(Debug)]
 pub enum LibDragonError {
     DfsError { error: dfs::DfsError },
-    IoError { },
     ErrnoError { errno: u32 },
 }
 
@@ -111,29 +110,6 @@ macro_rules! protect_gp {
             asm!(".set noat", "move $gp, {0}", in(reg) oldgp);
         }
         r
-    }
-}
-
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    let (file, line) = match info.location() {
-        Some(location) => {
-            (CString::new(location.file()).unwrap(), location.line())
-        },
-        _ => (CString::new("<unknown>").unwrap(), 0)
-    };
-
-    let msg = if let Some(args) = info.message() {
-        CString::new(format!("{}", args).as_str()).unwrap()
-    } else {
-        CString::new("<unknown>").unwrap()
-    };
-
-    let failedexpr = CString::new("<rust panic>").unwrap();
-    let fmt = CString::new("%s").unwrap();
-
-    unsafe {
-        libdragon_sys::debug_assert_func_f(file.as_ptr(), line as i32, core::ptr::null(), failedexpr.as_ptr(), fmt.as_ptr(), msg.as_ptr());
     }
 }
 

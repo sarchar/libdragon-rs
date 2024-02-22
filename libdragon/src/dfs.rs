@@ -196,9 +196,7 @@ impl<'a> Dir<'a> {
             libdragon_sys::dir_findfirst(cpath.as_ptr(), dir.as_mut_ptr())
         };
         if s < 0 {
-            Err(LibDragonError::IoError {
-                /* error: std::io::Error::new(std::io::ErrorKind::NotFound, path), */
-            })
+            Err(LibDragonError::DfsError { error: DfsError::NotFound })
         } else {
             Ok(Self {
                 path: path,
@@ -214,9 +212,7 @@ impl<'a> Dir<'a> {
         };
         if s < 0 {
             match get_errno() {
-                libdragon_sys::ENOENT => Err(LibDragonError::IoError {
-                    /* error: std::io::Error::new(std::io::ErrorKind::NotFound, "No more entries"), */
-                }),
+                libdragon_sys::ENOENT => Err(LibDragonError::DfsError { error: DfsError::NotFound }),
                 errno @ _ => Err(LibDragonError::ErrnoError {
                     errno: errno
                 }),
@@ -237,9 +233,7 @@ impl<'a> Dir<'a> {
         match self.dir.d_type {
             DT_REG => Ok(EntryType::File),
             DT_DIR => Ok(EntryType::Directory),
-            _ => Err(LibDragonError::IoError {
-                        /* error: std::io::Error::new(std::io::ErrorKind::NotFound, "invalid d_type value") */
-            })
+            _ => Err(LibDragonError::DfsError { error: DfsError::NotFound }),
         }
     }
 }
