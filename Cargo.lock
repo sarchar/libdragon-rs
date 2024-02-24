@@ -1322,6 +1322,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "spritemap"
+version = "0.1.0"
+dependencies = [
+ "libdragon",
+]
+
+[[package]]
 name = "subtle"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

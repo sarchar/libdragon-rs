@@ -28,3 +28,11 @@ pub fn block_end() -> Block {
         ptr: block_ptr,
     }
 }
+
+pub fn wait() {
+    unsafe {
+        libdragon_sys::rspq_wait();
+    }
+}
+
+

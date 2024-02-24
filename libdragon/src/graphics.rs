@@ -69,18 +69,23 @@ pub fn rgba32(r: u8, g: u8, b: u8, a: u8) -> Color {
 }
 
 pub struct Graphics {
-    surface: Surface,
+    surface: Option<Surface>,
 }
 
 impl Graphics {
     pub fn new(surface: Surface) -> Self {
         Self {
-            surface: surface
+            surface: Some(surface)
         }
     }
 
     pub fn surface(&self) -> &Surface {
-        &self.surface
+        self.surface.as_ref().unwrap()
+    }
+
+    /// Take ownership of the underlying Surface. The Graphics object is no longer valid.
+    pub fn finish(&mut self) -> Surface {
+        core::mem::replace(&mut self.surface, None).unwrap()
     }
 
     pub fn set_color(&self, forecolor: u32, backcolor: u32) {
@@ -108,75 +113,75 @@ impl Graphics {
 
     pub fn fill_screen(&mut self, color: u32) {
         unsafe {
-            libdragon_sys::graphics_fill_screen(self.surface.ptr, color);
+            libdragon_sys::graphics_fill_screen(self.surface.as_mut().unwrap().ptr, color);
         }
     }
 
     pub fn draw_pixel(&mut self, x: i32, y: i32, color: u32) {
         unsafe {
-            libdragon_sys::graphics_draw_pixel(self.surface.ptr, x, y, color);
+            libdragon_sys::graphics_draw_pixel(self.surface.as_mut().unwrap().ptr, x, y, color);
         }
     }
 
     pub fn draw_pixel_trans(&mut self, x: i32, y: i32, color: u32) {
         unsafe {
-            libdragon_sys::graphics_draw_pixel_trans(self.surface.ptr, x, y, color);
+            libdragon_sys::graphics_draw_pixel_trans(self.surface.as_mut().unwrap().ptr, x, y, color);
         }
     }
 
     pub fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: u32) {
         unsafe {
-            libdragon_sys::graphics_draw_line(self.surface.ptr, x0, y0, x1, y1, color);
+            libdragon_sys::graphics_draw_line(self.surface.as_mut().unwrap().ptr, x0, y0, x1, y1, color);
         }
     }
 
     pub fn draw_line_trans(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: u32) {
         unsafe {
-            libdragon_sys::graphics_draw_line_trans(self.surface.ptr, x0, y0, x1, y1, color);
+            libdragon_sys::graphics_draw_line_trans(self.surface.as_mut().unwrap().ptr, x0, y0, x1, y1, color);
         }
     }
 
     pub fn draw_box(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: u32) {
         unsafe {
-            libdragon_sys::graphics_draw_box(self.surface.ptr, x0, y0, x1, y1, color);
+            libdragon_sys::graphics_draw_box(self.surface.as_mut().unwrap().ptr, x0, y0, x1, y1, color);
         }
     }
 
     pub fn draw_character(&mut self, x: i32, y: i32, c: char) {
         unsafe {
-            libdragon_sys::graphics_draw_character(self.surface.ptr, x, y, c as ::core::ffi::c_char);
+            libdragon_sys::graphics_draw_character(self.surface.as_mut().unwrap().ptr, x, y, c as ::core::ffi::c_char);
         }
     }
 
     pub fn draw_text(&mut self, x: i32, y: i32, msg: &str) {
         let cmsg = CString::new(msg).unwrap();
         unsafe {
-            libdragon_sys::graphics_draw_text(self.surface.ptr, x, y, cmsg.as_ptr());
+            libdragon_sys::graphics_draw_text(self.surface.as_mut().unwrap().ptr, x, y, cmsg.as_ptr());
         }
     }
 
     pub fn draw_sprite(&mut self, x: i32, y: i32, sprite: &Sprite) {
         unsafe {
-            libdragon_sys::graphics_draw_sprite(self.surface.ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s);
+            libdragon_sys::graphics_draw_sprite(self.surface.as_mut().unwrap().ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s);
         }
     }
 
     pub fn draw_sprite_stride(&mut self, x: i32, y: i32, sprite: &Sprite, offset: i32) {
         unsafe {
-            libdragon_sys::graphics_draw_sprite_stride(self.surface.ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, 
+            libdragon_sys::graphics_draw_sprite_stride(self.surface.as_mut().unwrap().ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, 
                                                 offset as ::core::ffi::c_int);
         }
     }
 
     pub fn draw_sprite_trans(&mut self, x: i32, y: i32, sprite: &Sprite) {
         unsafe {
-            libdragon_sys::graphics_draw_sprite_trans(self.surface.ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s);
+            libdragon_sys::graphics_draw_sprite_trans(self.surface.as_mut().unwrap().ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s);
         }
     }
 
     pub fn draw_sprite_trans_stride(&mut self, x: i32, y: i32, sprite: &Sprite, offset: i32) {
         unsafe {
-            libdragon_sys::graphics_draw_sprite_trans_stride(self.surface.ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, 
+            libdragon_sys::graphics_draw_sprite_trans_stride(self.surface.as_mut().unwrap().ptr, x, y, sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, 
                                                              offset as ::core::ffi::c_int);
         }
     }

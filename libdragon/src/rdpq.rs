@@ -52,12 +52,30 @@ pub fn set_blend_color(color: graphics::Color)
 }
 
 // rdpq_attach.h
-pub fn attach_clear(surf_color: Option<Surface>, surf_depth: Option<Surface>) {
+pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
     let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
     let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
     unsafe {
-        libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(color_null_surface).ptr, 
-                                         surf_depth.unwrap_or(depth_null_surface).ptr);
+        libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
+                                         surf_depth.unwrap_or(&depth_null_surface).ptr);
+    }
+}
+
+pub fn attach_clear(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
+    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
+    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
+    unsafe {
+        libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
+                                         surf_depth.unwrap_or(&depth_null_surface).ptr);
+    }
+}
+
+pub fn detach() {
+    extern "C" {
+        fn rdpq_detach_cb(cb: Option<unsafe extern "C" fn(arg: *mut core::ffi::c_void)>, arg: *mut ::core::ffi::c_void);
+    }
+    unsafe {
+        rdpq_detach_cb(None, ::core::ptr::null_mut());
     }
 }
 
@@ -65,6 +83,12 @@ pub fn detach_show() {
     unsafe {
         libdragon_sys::rdpq_detach_show();
     }
+}
+
+#[inline]
+pub fn detach_wait() {
+    detach();
+    rspq::wait();
 }
 
 // rdpq_mode.h

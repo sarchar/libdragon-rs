@@ -24,6 +24,7 @@ pub mod dfs;
 pub mod display;
 pub mod graphics;
 pub mod joypad;
+pub mod rdp;
 pub mod rdpq;
 pub mod rspq;
 pub mod timer;
