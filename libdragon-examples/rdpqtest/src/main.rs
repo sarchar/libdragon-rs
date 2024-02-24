@@ -10,6 +10,7 @@ use libdragon::dfs::{self, DfsPathBuf};
 use libdragon::display::{self, TextureFormat, Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::Sprite;
 use libdragon::rdpq::{self, Tlut};
+use libdragon::timer::{self, Timer};
 
 use core_maths::*;
 use rand_mt::Mt64;
@@ -177,7 +178,7 @@ extern "C" fn main() -> ! {
 
     let do_update = Arc::new(AtomicBool::new(false));
     let do_update_clone = do_update.clone();
-    timer::new(timer::ticks(1000000 / 60), timer::Mode::Continuous, Box::new(move |_| {
+    let _timer = Timer::new(timer::make_ticks(1000000 / 60), timer::Mode::Continuous, Box::new(move |_| {
         do_update_clone.store(true, Ordering::SeqCst);
     }));
 
