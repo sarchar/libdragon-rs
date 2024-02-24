@@ -9,6 +9,8 @@ pub fn make_color(r: i32, g: i32, b: i32, a: i32) -> u32 {
 }
 
 // color_t is a simple type that can be exposed directly
+#[repr(C)]
+#[derive(Copy, Clone)]
 pub struct Color {
     pub c: libdragon_sys::color_t,
 }
@@ -45,6 +47,14 @@ impl Color {
                 b: ((c >>  8) & 0xFF) as u8,
                 a: ((c >>  0) & 0xFF) as u8,
             }
+        }
+    }
+}
+
+impl Into<libdragon_sys::color_t> for Color {
+    fn into(self) -> libdragon_sys::color_t {
+        unsafe {
+            *core::mem::transmute::<&Self, *const libdragon_sys::color_t>(&self)
         }
     }
 }

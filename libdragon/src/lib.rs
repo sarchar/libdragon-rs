@@ -134,4 +134,12 @@ pub fn cpu_frequency() -> u64 {
     if __boot_consoletype() != 0 { 144000000 } else { 93750000 }
 }
 
+#[inline(always)]
+pub fn disable_interrupts() {
+    unsafe { libdragon_sys::disable_interrupts(); }
+}
 
+#[inline(always)]
+pub fn enable_interrupts() {
+    unsafe { libdragon_sys::enable_interrupts(); }
+}

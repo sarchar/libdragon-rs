@@ -43,11 +43,20 @@ pub fn debug_log_msg(msg: &str) {
     }
 }
 
-pub fn set_blend_color(color: graphics::Color)
-{
+pub fn set_blend_color(color: graphics::Color) {
     unsafe {
         __rdpq_write8_syncchange(libdragon_sys::RDPQ_CMD_SET_BLEND_COLOR, 0, color.to_packed32(), 
                                  libdragon_sys::AUTOSYNC_PIPE);
+    }
+}
+
+pub fn set_fill_color(color: graphics::Color) {
+    extern "C" {
+        fn __rdpq_set_fill_color(c: ::core::ffi::c_uint);
+    }
+    let c = color.to_packed32();
+    unsafe {
+        __rdpq_set_fill_color(c);
     }
 }
 
@@ -134,6 +143,16 @@ pub fn set_mode_copy(transparency: bool) {
     unsafe {
         libdragon_sys::rdpq_set_mode_copy(transparency);
     }
+}
+
+pub fn set_mode_fill(color: graphics::Color) {
+    extern "C" {
+        fn __rdpq_set_mode_fill();
+    }
+    unsafe {
+        __rdpq_set_mode_fill();
+    }
+    set_fill_color(color);
 }
 
 extern "C" {
@@ -303,6 +322,10 @@ pub fn tex_upload_sub(tile: Tile, tex: &Surface, parms: Option<TexParms>, s0: i3
 
 // rdpq_rect.h
 extern "C" {
+    fn __rdpq_fill_rectangle_offline(x0: ::core::ffi::c_int, 
+                                     y0: ::core::ffi::c_int, 
+                                     x1: ::core::ffi::c_int, 
+                                     y1: ::core::ffi::c_int);
     fn __rdpq_texture_rectangle_offline(tile: libdragon_sys::rdpq_tile_t,
                                         x0: ::core::ffi::c_int,
                                         y0: ::core::ffi::c_int,
@@ -310,6 +333,18 @@ extern "C" {
                                         y1: ::core::ffi::c_int,
                                         s0: ::core::ffi::c_int,
                                         t0: ::core::ffi::c_int);
+}
+
+#[inline(always)]
+pub fn fill_rectangle(x0: i32, y0: i32, x1: i32, y1: i32) {
+    __rdpq_fill_rectangle_fx(x0*4, y0*4, x1*4, y1*4);
+}
+
+#[inline]
+fn __rdpq_fill_rectangle_fx(x0: i32, y0: i32, x1: i32, y1: i32) {
+    unsafe {
+        __rdpq_fill_rectangle_offline(x0, y0, x1, y1);
+    }
 }
 
 #[inline(always)]
@@ -324,4 +359,117 @@ pub fn __texture_rectangle_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s:
     }
 }
 
+// rdpq_font.h
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct FontStyle {
+    pub color: graphics::Color,
+}
+
+impl Into<libdragon_sys::rdpq_fontstyle_t> for FontStyle {
+    fn into(self) -> libdragon_sys::rdpq_fontstyle_t {
+        unsafe {
+            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_fontstyle_t>(&self)
+        }
+    }
+}
+
+pub struct Font {
+    pub(crate) ptr: *mut libdragon_sys::rdpq_font_t,
+}
+
+impl Font {
+    /// See [`rdpq_font_load`](libdragon-sys::rdpq_font_load) for details.
+    ///
+    /// The Libdragon [`rdpq_font_t`](libdragon-sys::rdpq_font_t) is freed when this object is dropped
+    pub fn load(filename: &str) -> Self {
+        let cfilename = CString::new(filename).unwrap();
+        let ptr = unsafe {
+            libdragon_sys::rdpq_font_load(cfilename.as_ptr())
+        };
+        Self {
+            ptr: ptr,
+        }
+    }
+
+    pub fn style(&mut self, id: u8, style: FontStyle) {
+        unsafe {
+            libdragon_sys::rdpq_font_style(self.ptr, id, &Into::<libdragon_sys::rdpq_fontstyle_t>::into(style) as *const libdragon_sys::rdpq_fontstyle_t)
+        }
+    }
+}
+
+impl Drop for Font {
+    fn drop(&mut self) {
+        unsafe {
+            libdragon_sys::rdpq_font_free(self.ptr);
+        }
+    }
+}
+
+// rdpq_text.h
+pub fn text_register_font(id: u8, font: &Font) {
+    unsafe {
+        libdragon_sys::rdpq_text_register_font(id, font.ptr);
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub enum Align {
+    #[default]
+    Left   = 0,
+    Center = 1,
+    Right  = 2,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub enum VAlign {
+    #[default]
+    Top    = 0,
+    Center = 1,
+    Bottom = 2,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub enum TextWrap {
+    #[default]
+    None = 0,
+    Ellipses = 1,
+    Char = 2,
+    Word = 3,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub struct TextParms {
+    pub width       : i16,
+    pub height      : i16,
+    pub align       : Align,
+    pub valign      : VAlign,
+    pub indent      : i16,
+    pub char_spacing: i16,
+    pub line_spacing: i16,
+    pub wrap        : TextWrap,
+}
+
+impl Into<libdragon_sys::rdpq_textparms_t> for TextParms {
+    fn into(self) -> libdragon_sys::rdpq_textparms_t {
+        unsafe {
+            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_textparms_t>(&self)
+        }
+    }
+}
+
+pub fn text_print(parms: TextParms, font_id: u8, x0: f32, y0: f32, text: &str) -> i32 {
+    let ctext = CString::new(text).unwrap();
+    let len = ctext.to_bytes().len(); // does not contain any trailing \0
+    unsafe {
+        libdragon_sys::rdpq_text_printn(
+            &mut Into::<libdragon_sys::rdpq_textparms_t>::into(parms) as *mut libdragon_sys::rdpq_textparms_t,
+            font_id, x0, y0, ctext.as_ptr(), len as i32)
+    }
+}
 
