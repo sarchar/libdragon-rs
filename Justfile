@@ -10,7 +10,7 @@ build-release:
     @just build-examples-release
 
 build-verbose:
-    cargo build --verbose
+    cargo build -vvv
     @just build-examples-verbose
 
 build-release-verbose:
@@ -24,6 +24,9 @@ build-toolchain:
 build-release-toolchain:
     cargo build --release --features libdragon-sys/buildtoolchain -vvv
     @just build-examples-release-verbose
+
+build-example EXAMPLE:
+    cd "libdragon-examples/{{EXAMPLE}}" && just build
 
 build-examples:
     @for example in `ls libdragon-examples`; do \

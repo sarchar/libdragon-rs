@@ -137,6 +137,7 @@ async fn main() -> Result<()> {
     println!("cargo:rustc-link-lib=static=g");
     println!("cargo:rustc-link-lib=static=nosys");
     println!("cargo:rustc-link-lib=static=gcc");
+    println!("cargo:rustc-link-lib=static=m");
 
     let bindings = bindgen::Builder::default()
                         .clang_arg(format!("-I{}/mips64-libdragon-elf/include", toolchain_dir.display()))

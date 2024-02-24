@@ -13,6 +13,7 @@ pub use alloc::vec;
 pub use alloc::vec::Vec;
 pub use alloc::boxed::Box;
 pub use alloc::format;
+pub use alloc::sync::Arc;
 
 mod allocator;
 mod panic;
@@ -23,6 +24,9 @@ pub mod dfs;
 pub mod display;
 pub mod graphics;
 pub mod joypad;
+pub mod rdpq;
+pub mod rspq;
+pub mod timer;
 
 #[derive(Debug)]
 pub enum LibDragonError {
@@ -113,6 +117,20 @@ macro_rules! protect_gp {
         }
         r
     }
+}
+
+pub fn __boot_consoletype() -> i32 {
+    unsafe { libdragon_sys::__boot_consoletype }
+}
+
+#[inline(always)]
+pub fn rsp_frequency() -> u64 {
+    if __boot_consoletype() != 0 { 96000000 } else { 62500000 }
+}
+
+#[inline(always)]
+pub fn cpu_frequency() -> u64 {
+    if __boot_consoletype() != 0 { 144000000 } else { 93750000 }
 }
 
 

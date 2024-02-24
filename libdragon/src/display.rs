@@ -1,6 +1,60 @@
 #![allow(non_upper_case_globals)]
 
-#[derive(Debug, Clone, Copy)]
+use crate::*;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TextureFormat {
+    None,
+    Rgba16,
+    Rgba32,
+    Yuv16,
+    Ci4,
+    Ci8,
+    Ia4,
+    Ia8,
+    Ia16,
+    I4,
+    I8,
+}
+
+impl From<libdragon_sys::tex_format_t> for TextureFormat {
+    fn from(value: libdragon_sys::tex_format_t) -> Self {
+        match value {
+            libdragon_sys::tex_format_t_FMT_NONE   => TextureFormat::None,
+            libdragon_sys::tex_format_t_FMT_RGBA16 => TextureFormat::Rgba16,
+            libdragon_sys::tex_format_t_FMT_RGBA32 => TextureFormat::Rgba32,
+            libdragon_sys::tex_format_t_FMT_YUV16  => TextureFormat::Yuv16,
+            libdragon_sys::tex_format_t_FMT_CI4    => TextureFormat::Ci4,
+            libdragon_sys::tex_format_t_FMT_CI8    => TextureFormat::Ci8,
+            libdragon_sys::tex_format_t_FMT_IA4    => TextureFormat::Ia4,
+            libdragon_sys::tex_format_t_FMT_IA8    => TextureFormat::Ia8,
+            libdragon_sys::tex_format_t_FMT_IA16   => TextureFormat::Ia16,
+            libdragon_sys::tex_format_t_FMT_I4     => TextureFormat::I4,
+            libdragon_sys::tex_format_t_FMT_I8     => TextureFormat::I8,
+            _ => panic!("invalid tex_format_t"),
+        }
+    }
+}
+
+impl Into<libdragon_sys::tex_format_t> for TextureFormat {
+    fn into(self) -> libdragon_sys::tex_format_t {
+        match self {
+            TextureFormat::None   => libdragon_sys::tex_format_t_FMT_NONE,
+            TextureFormat::Rgba16 => libdragon_sys::tex_format_t_FMT_RGBA16,
+            TextureFormat::Rgba32 => libdragon_sys::tex_format_t_FMT_RGBA32,
+            TextureFormat::Yuv16  => libdragon_sys::tex_format_t_FMT_YUV16,
+            TextureFormat::Ci4    => libdragon_sys::tex_format_t_FMT_CI4,
+            TextureFormat::Ci8    => libdragon_sys::tex_format_t_FMT_CI8,
+            TextureFormat::Ia4    => libdragon_sys::tex_format_t_FMT_IA4,
+            TextureFormat::Ia8    => libdragon_sys::tex_format_t_FMT_IA8,
+            TextureFormat::Ia16   => libdragon_sys::tex_format_t_FMT_IA16,
+            TextureFormat::I4     => libdragon_sys::tex_format_t_FMT_I4,
+            TextureFormat::I8     => libdragon_sys::tex_format_t_FMT_I8,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BitDepth {
     Bpp16,
     Bpp32,
@@ -25,7 +79,7 @@ impl From<libdragon_sys::bitdepth_t> for BitDepth {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Gamma {
     None,
     Correct,
@@ -43,7 +97,7 @@ impl Into<libdragon_sys::gamma_t> for Gamma {
 }
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FilterOptions {
     Disabled,
     Resample,
@@ -72,7 +126,7 @@ static RESOLUTION_640x240: &libdragon_sys::resolution_t = unsafe { &libdragon_sy
 static RESOLUTION_512x480: &libdragon_sys::resolution_t = unsafe { &libdragon_sys::RESOLUTION_512x480 };
 static RESOLUTION_640x480: &libdragon_sys::resolution_t = unsafe { &libdragon_sys::RESOLUTION_640x480 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Resolution {
     _256x240,
     _320x240,
@@ -117,70 +171,72 @@ pub fn close() {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct Display {
-    pub(crate) ptr: *mut libdragon_sys::surface_t,
+pub fn get() -> Surface {
+    let ptr = unsafe {
+        libdragon_sys::display_get()
+    };
+
+    Surface {
+        ptr: ptr,
+        _backing_surface: None,
+    }
 }
 
+pub fn try_get() -> Option<Surface> {
+    let ptr = unsafe {
+        libdragon_sys::display_try_get()
+    };
 
-impl Display {
-    pub fn get() -> Self {
-        let ptr = unsafe {
-            libdragon_sys::display_get()
-        };
-        Self {
+    if ptr == ::core::ptr::null_mut() {
+        None
+    } else {
+        Some(Surface {
             ptr: ptr,
-        }
+            _backing_surface: None,
+        })
     }
+}
 
-    pub fn try_get() -> Option<Self> {
-        let ptr = unsafe {
-            libdragon_sys::display_try_get()
-        };
-
-        if ptr == ::core::ptr::null_mut() {
-            None
-        } else {
-            Some(Self {
-                ptr: ptr,
-            })
-        }
+pub fn get_width() -> u32 {
+    unsafe {
+        libdragon_sys::display_get_width()
     }
+}
 
+pub fn get_height() -> u32 {
+    unsafe {
+        libdragon_sys::display_get_height()
+    }
+}
+
+pub fn get_bitdepth() -> BitDepth {
+    let s = unsafe {
+        libdragon_sys::display_get_bitdepth()
+    };
+    s.into()
+}
+
+pub fn get_num_buffers() -> u32 {
+    unsafe {
+        libdragon_sys::display_get_num_buffers()
+    }
+}
+
+pub fn get_fps() -> f32 {
+    unsafe {
+        libdragon_sys::display_get_fps()
+    }
+}
+
+pub struct Surface {
+    pub(crate) ptr: *mut libdragon_sys::surface_t,
+    pub(crate) _backing_surface: Option<core::pin::Pin<Box<libdragon_sys::surface_t>>>,
+}
+
+impl Surface {
     pub fn show(&self) {
         unsafe {
             libdragon_sys::display_show(self.ptr);
-        }
-    }
-
-    pub fn get_width(&self) -> u32 {
-        unsafe {
-            libdragon_sys::display_get_width()
-        }
-    }
-
-    pub fn get_height(&self) -> u32 {
-        unsafe {
-            libdragon_sys::display_get_height()
-        }
-    }
-
-    pub fn get_bitdepth(&self) -> BitDepth {
-        let s = unsafe {
-            libdragon_sys::display_get_bitdepth()
-        };
-        s.into()
-    }
-
-    pub fn get_num_buffers(&self) -> u32 {
-        unsafe {
-            libdragon_sys::display_get_num_buffers()
-        }
-    }
-
-    pub fn get_fps(&self) -> f32 {
-        unsafe {
-            libdragon_sys::display_get_fps()
         }
     }
 }

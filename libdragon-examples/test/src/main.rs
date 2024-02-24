@@ -4,13 +4,10 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-#[allow(unused_imports)]
-use libdragon::{println, eprintln};
-
-use libdragon::{joypad, debug, dfs};
-use libdragon::dfs::{Read, DfsPathBuf};
+use libdragon::{joypad, debug};
+use libdragon::dfs::{self, Read, DfsPathBuf};
+use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::{make_color, Graphics, Sprite};
-use libdragon::display::{self, Display, Resolution, BitDepth, Gamma, FilterOptions};
 
 fn read_sprite(filename: &str) -> Sprite {
     let mut fp = dfs::File::open(&DfsPathBuf::from(filename), "r").unwrap();
@@ -52,8 +49,7 @@ extern "C" fn main() -> ! {
     joypad::init();
     
     loop {
-        let d = Display::get();
-        let mut g = Graphics::new(d);
+        let mut g = Graphics::new(display::get());
 
         g.fill_screen(0);
         g.draw_text(20, 20, &format!("Video mode: {}", unsafe { *(0x8000_0300 as *const u32) }));
@@ -99,7 +95,7 @@ extern "C" fn main() -> ! {
         g.draw_sprite_trans(170, 20, &green16);
         g.draw_sprite_trans(160, 30, &blue16);
 
-        d.show();
+        g.surface().show();
 
         joypad::poll();
 

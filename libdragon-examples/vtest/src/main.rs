@@ -4,12 +4,9 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-#[allow(unused_imports)]
-use libdragon::{println, eprintln};
-
 use libdragon::{joypad, debug};
 use libdragon::graphics::{make_color, Graphics};
-use libdragon::display::{self, Display, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
 
 const WIDTH: [i32; 6] = [320, 640, 256, 512, 512, 640];
 const HEIGHT: [i32; 6] = [240, 480, 240, 480, 240, 240];
@@ -29,8 +26,7 @@ extern "C" fn main() -> ! {
 
     let mut res = 0;
     loop {
-        let d = Display::get();
-        let mut g = Graphics::new(d);
+        let mut g = Graphics::new(display::get());
 
         let color = make_color(0xCC, 0xCC, 0xCC, 0xFF);
         g.fill_screen(color);
@@ -56,7 +52,7 @@ extern "C" fn main() -> ! {
             5 => print_text(&mut g, "640x240p", WIDTH[res]/16 - 3, 5),
             _ => panic!("invalid"),
         }
-        let fps = d.get_fps();
+        let fps = display::get_fps();
         print_text(&mut g, &format!("{}", fps), WIDTH[res]/16 - 3, 10);
 
         for j in 0..8 {
@@ -69,7 +65,7 @@ extern "C" fn main() -> ! {
         print_text(&mut g, "0123456789", 0, 16);
         print_text(&mut g, "9876543210", WIDTH[res]/8 - 10, 16);
 
-        d.show();
+        g.surface().show();
 
         joypad::poll();
 

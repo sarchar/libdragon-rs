@@ -2,8 +2,6 @@
 #![no_main]
 
 use libdragon::*;
-//#[allow(unused_imports)]
-//use libdragon::{print, println, eprintln};
 
 use libdragon::{joypad, debug};
 use libdragon::console::{self, RenderMode};
