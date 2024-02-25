@@ -1,5 +1,7 @@
 use crate::*;
 
+use sprite::Sprite;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Mirror {
     Disabled,
@@ -19,13 +21,13 @@ impl Into<libdragon_sys::mirror_t> for Mirror {
     }
 }
 
-pub fn load_texture(texslot: u32, texloc: u32, mirror: Mirror, sprite: &graphics::Sprite) -> u32 {
+pub fn load_texture(texslot: u32, texloc: u32, mirror: Mirror, sprite: &Sprite) -> u32 {
     unsafe {
         libdragon_sys::rdp_load_texture(texslot, texloc, mirror.into(), sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_t) as u32
     }
 }
 
-pub fn load_texture_stride(texslot: u32, texloc: u32, mirror: Mirror, sprite: &graphics::Sprite, offset: i32) -> u32 {
+pub fn load_texture_stride(texslot: u32, texloc: u32, mirror: Mirror, sprite: &Sprite, offset: i32) -> u32 {
     unsafe {
         libdragon_sys::rdp_load_texture_stride(texslot, texloc, mirror.into(), sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_t, offset) as u32
     }

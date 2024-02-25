@@ -3,9 +3,8 @@
 
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::console::{self, RenderMode};
-use libdragon::dfs::{self, DfsPathBuf, Read};
+use libdragon::console::RenderMode;
+use libdragon::dfs::{DfsPathBuf, Read};
 
 const MAX_LIST: usize = 20;
 

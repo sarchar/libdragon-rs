@@ -5,11 +5,11 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::dfs::{self, DfsPathBuf};
-use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::{Graphics, Sprite};
-use libdragon::timer::{self, Timer};
+use libdragon::dfs::DfsPathBuf;
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::graphics::Graphics;
+use libdragon::sprite::Sprite;
+use libdragon::timer::Timer;
 
 #[no_mangle]
 extern "C" fn main() -> ! {

@@ -4,10 +4,10 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::graphics::{Graphics, Sprite};
-use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::dfs::DfsPathBuf;
+use libdragon::graphics::Graphics;
+use libdragon::sprite::Sprite;
 
 #[no_mangle]
 extern "C" fn main() -> ! {

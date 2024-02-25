@@ -4,10 +4,10 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::dfs::{self, Read, DfsPathBuf};
-use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::{make_color, Graphics, Sprite};
+use libdragon::dfs::{Read, DfsPathBuf};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::graphics::{make_color, Graphics};
+use libdragon::sprite::Sprite;
 
 fn read_sprite(filename: &str) -> Sprite {
     let mut fp = dfs::File::open(&DfsPathBuf::from(filename), "r").unwrap();

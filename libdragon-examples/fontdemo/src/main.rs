@@ -4,8 +4,7 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 
 const FONT_PACIFICO: u8 = 1;
 const FONT_ZEROVELOCITY: u8 = 2;

@@ -27,6 +27,7 @@ pub mod joypad;
 pub mod rdp;
 pub mod rdpq;
 pub mod rspq;
+pub mod sprite;
 pub mod timer;
 
 #[derive(Debug)]

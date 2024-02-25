@@ -3,16 +3,13 @@
 
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::console::{self, RenderMode};
-
 #[no_mangle]
 extern "C" fn main() -> ! {
     // enable ISViewer, so eprintln calls are displayed there
     debug::init_features(debug::FEATURE_LOG_ISVIEWER);
 
     console::init();
-    console::set_render_mode(RenderMode::Manual);
+    console::set_render_mode(console::RenderMode::Manual);
 
     joypad::init();
     

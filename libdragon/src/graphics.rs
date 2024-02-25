@@ -1,6 +1,7 @@
 use crate::*;
 
 use display::Surface;
+use sprite::Sprite;
 
 pub fn make_color(r: i32, g: i32, b: i32, a: i32) -> u32 {
     unsafe {
@@ -61,7 +62,6 @@ impl Into<libdragon_sys::color_t> for Color {
 
 extern "C" {
     fn graphics_convert_color_r(color: *const libdragon_sys::color_t) -> u32;
-    fn sprite_get_pixels_r(surface: *mut libdragon_sys::surface_t, sprite: *mut libdragon_sys::sprite_t);
 }
 
 pub fn convert_color( color: Color ) -> u32 {
@@ -197,92 +197,4 @@ impl Graphics {
     }
 }
 
-pub struct Sprite {
-    ptr: *mut u8,
-    _data: Option<core::pin::Pin<Box<Vec<u8>>>>,
-}
 
-unsafe impl Send for Sprite {}
-unsafe impl Sync for Sprite {}
-
-impl Sprite {
-    pub fn load(path: dfs::DfsPathBuf) -> Result<Self> {
-        let path_bytes: &[u8] = path.as_bytes();
-        let cpath = CString::new(path_bytes).unwrap();
-
-        let s = unsafe {
-            libdragon_sys::sprite_load(cpath.as_ptr()) as *mut u8
-        };
-
-        Ok(Self {
-            ptr: s,
-            _data: None,
-        })
-    }
-
-    pub fn from_data(data: Vec<u8>) -> Self {
-        let mut data = Box::pin(data);
-        let ptr  = data.as_mut_ptr();
-        Self {
-            _data: Some(data),
-            ptr: ptr,
-        }
-    }
-
-    pub(crate) fn as_const_sprite_s(&self) -> *const libdragon_sys::sprite_s {
-        unsafe {
-            core::mem::transmute(self.ptr)
-        }
-    }
-
-    pub fn width(&self) -> u16 {
-        let spr = self.ptr as *const libdragon_sys::sprite_s;
-        unsafe { (*spr).width }
-    }
-
-    pub fn height(&self) -> u16 {
-        let spr = self.ptr as *const libdragon_sys::sprite_s;
-        unsafe { (*spr).height }
-    }
-
-    pub fn hslices(&self) -> u8 {
-        let spr = self.ptr as *const libdragon_sys::sprite_s;
-        unsafe { (*spr).hslices }
-    }
-
-    pub fn vslices(&self) -> u8 {
-        let spr = self.ptr as *const libdragon_sys::sprite_s;
-        unsafe { (*spr).vslices }
-    }
-
-    pub fn get_format(&self) -> display::TextureFormat {
-        let spr = self.ptr as *const libdragon_sys::sprite_s;
-        let f = unsafe { (*spr).__bindgen_anon_1.flags & (libdragon_sys::SPRITE_FLAGS_TEXFORMAT as u8) };
-        (f as libdragon_sys::tex_format_t).into()
-    }
-
-    pub fn get_palette(&self) -> rdpq::TlutPalette {
-        unsafe {
-            libdragon_sys::sprite_get_palette(self.ptr as *mut libdragon_sys::sprite_t) as rdpq::TlutPalette
-        }
-    }
-
-    pub fn get_pixels(&self) -> display::Surface {
-        // initialize surface_t from libdragon
-        let mut surface: core::mem::MaybeUninit<libdragon_sys::surface_t> = core::mem::MaybeUninit::uninit();
-        unsafe {
-            sprite_get_pixels_r(surface.as_mut_ptr(), self.ptr as *mut libdragon_sys::sprite_t);
-        }
-
-        // pin the structure in place before getting memory address
-        let mut backing_surface = Box::pin(unsafe { surface.assume_init() });
-
-        display::Surface {
-            ptr: unsafe { 
-                core::mem::transmute(backing_surface.as_mut()) 
-            },
-            _backing_surface: Some(backing_surface),
-        }
-    }
-
-}

@@ -5,12 +5,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use libdragon::*;
 
-use libdragon::{joypad, debug};
-use libdragon::dfs::{self, DfsPathBuf};
-use libdragon::display::{self, TextureFormat, Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::Sprite;
-use libdragon::rdpq::{self, Tlut};
-use libdragon::timer::{self, Timer};
+use libdragon::dfs::DfsPathBuf;
+use libdragon::display::{TextureFormat, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::sprite::Sprite;
+use libdragon::timer::Timer;
 
 use core_maths::*;
 use rand_mt::Mt64;
@@ -73,7 +71,7 @@ impl App {
             // so that we show how a block can temporarily change the current
             // render mode, and then restore it at the end.
             rdpq::mode_push();
-            rdpq::mode_tlut(Tlut::Rgba16);
+            rdpq::mode_tlut(rdpq::Tlut::Rgba16);
             rdpq::tex_upload_tlut(tiles_sprite.get_palette(), 0, 16);
             tlut = true;
         }

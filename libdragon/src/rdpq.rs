@@ -1,5 +1,7 @@
 use crate::*;
+
 use display::Surface;
+use sprite::Sprite;
 
 // rdpq_macros.h
 pub const SOM_SAMPLE_SHIFT   : u32 = libdragon_sys::SOM_SAMPLE_SHIFT;
@@ -213,7 +215,7 @@ pub fn mode_tlut(tlut: Tlut) {
 
 // rdpq_sprite.h
 //void rdpq_sprite_blit(sprite_t *sprite, float x0, float y0, const rdpq_blitparms_t *parms);
-pub fn sprite_blit(sprite: &graphics::Sprite, x0: f32, y0: f32, parms: BlitParms) {
+pub fn sprite_blit(sprite: &Sprite, x0: f32, y0: f32, parms: BlitParms) {
     let parms: libdragon_sys::rdpq_blitparms_t = parms.into();
     unsafe {
         libdragon_sys::rdpq_sprite_blit(sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, x0, y0, &parms);

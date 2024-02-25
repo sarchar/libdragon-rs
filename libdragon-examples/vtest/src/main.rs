@@ -4,9 +4,8 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::{joypad, debug};
 use libdragon::graphics::{make_color, Graphics};
-use libdragon::display::{self, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 
 const WIDTH: [i32; 6] = [320, 640, 256, 512, 512, 640];
 const HEIGHT: [i32; 6] = [240, 480, 240, 480, 240, 240];
