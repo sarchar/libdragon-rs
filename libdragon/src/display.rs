@@ -179,6 +179,7 @@ pub fn get() -> Surface {
     Surface {
         ptr: ptr,
         _backing_surface: None,
+        needs_free: false,
     }
 }
 
@@ -193,6 +194,7 @@ pub fn try_get() -> Option<Surface> {
         Some(Surface {
             ptr: ptr,
             _backing_surface: None,
+            needs_free: false,
         })
     }
 }
@@ -231,12 +233,44 @@ pub fn get_fps() -> f32 {
 pub struct Surface {
     pub(crate) ptr: *mut libdragon_sys::surface_t,
     pub(crate) _backing_surface: Option<core::pin::Pin<Box<libdragon_sys::surface_t>>>,
+    pub(crate) needs_free: bool,
 }
 
 impl Surface {
+    pub fn alloc(format: TextureFormat, width: u32, height: u32) -> Self {
+        extern "C" {
+            fn surface_alloc_r(surface: *mut libdragon_sys::surface_t, format: libdragon_sys::tex_format_t, width: u32, height: u32);
+        }
+
+        let mut surface: core::mem::MaybeUninit<libdragon_sys::surface_t> = core::mem::MaybeUninit::uninit();
+        unsafe {
+            surface_alloc_r(surface.as_mut_ptr(), format.into(), width, height);
+        }
+
+        let mut backing_surface = Box::pin(unsafe { surface.assume_init() });
+
+        display::Surface {
+            ptr: unsafe { 
+                core::mem::transmute(backing_surface.as_mut()) 
+            },
+            _backing_surface: Some(backing_surface),
+            needs_free: true,
+        }
+    }
+
     pub fn show(&self) {
         unsafe {
             libdragon_sys::display_show(self.ptr);
+        }
+    }
+}
+
+impl Drop for Surface {
+    fn drop(&mut self) {
+        if self.needs_free {
+            unsafe {
+                libdragon_sys::surface_free(self.ptr);
+            }
         }
     }
 }

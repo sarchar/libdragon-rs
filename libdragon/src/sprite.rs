@@ -85,6 +85,7 @@ impl Sprite {
                 core::mem::transmute(backing_surface.as_mut()) 
             },
             _backing_surface: Some(backing_surface),
+            needs_free: false,
         }
     }
 

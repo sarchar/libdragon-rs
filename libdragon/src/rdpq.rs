@@ -64,8 +64,8 @@ pub fn set_fill_color(color: graphics::Color) {
 
 // rdpq_attach.h
 pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
-    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
+    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
+    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
     unsafe {
         libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
                                          surf_depth.unwrap_or(&depth_null_surface).ptr);
@@ -73,8 +73,8 @@ pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
 }
 
 pub fn attach_clear(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
-    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None };
+    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
+    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
     unsafe {
         libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
                                          surf_depth.unwrap_or(&depth_null_surface).ptr);
@@ -223,6 +223,8 @@ pub fn sprite_blit(sprite: &Sprite, x0: f32, y0: f32, parms: BlitParms) {
 }
 
 // rdpq_tex.h
+pub const REPEAT_INFINITE: f32 = 2048.0;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Tile(pub u32);
@@ -279,21 +281,21 @@ impl Into<libdragon_sys::rdpq_blitparms_s> for BlitParms {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct TexParmST {
-    translate: f32,
-    scale_log: i32,
-    repeats  : f32,
-    mirror   : bool,
+#[derive(Debug, Copy, Clone, Default)]
+pub struct TexParmsST {
+    pub translate: f32,
+    pub scale_log: i32,
+    pub repeats  : f32,
+    pub mirror   : bool,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct TexParms {
-    tmem_addr: i32,
-    palette  : i32,
-    s        : TexParmST,
-    t        : TexParmST,
+    pub tmem_addr: i32,
+    pub palette  : i32,
+    pub s        : TexParmsST,
+    pub t        : TexParmsST,
 }
 
 impl Into<libdragon_sys::rdpq_texparms_t> for TexParms {

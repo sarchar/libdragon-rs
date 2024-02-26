@@ -22,6 +22,8 @@ pub mod console;
 pub mod debug;
 pub mod dfs;
 pub mod display;
+pub mod gl;
+pub mod glu;
 pub mod graphics;
 pub mod joypad;
 pub mod rdp;

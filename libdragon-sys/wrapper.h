@@ -3,3 +3,7 @@
 #include <unistd.h>
 
 #include <libdragon.h>
+#include <rspq_profile.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/gl_integration.h>
