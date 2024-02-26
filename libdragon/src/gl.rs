@@ -1176,7 +1176,7 @@ pub fn GetPointerv<T>(pname: i32, params: &mut [*mut T]) { unsafe { libdragon_sy
 #[inline(always)]
 pub fn GetString(name: i32) -> String { 
     let c_str = unsafe { CStr::from_ptr(libdragon_sys::glGetString(name as u32) as *const i8) };
-    c_str.to_str().unwrap().to_owned()
+    String::from_utf8_lossy(c_str.to_bytes()).to_string()
 }
 
 // gl_integration.h

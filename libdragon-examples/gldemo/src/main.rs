@@ -27,6 +27,9 @@ use sphere::Sphere;
 mod skinned;
 use skinned::Skinned;
 
+mod prim_test;
+use prim_test::PrimTest;
+
 use core_maths::*;
 
 #[repr(C)]
@@ -77,6 +80,7 @@ struct App {
     plane: Plane,
     decal: Decal,
     skinned: Skinned,
+    prim_test: PrimTest,
 }
 
 impl App {
@@ -170,6 +174,7 @@ impl App {
             plane: plane,
             decal: Decal::new(),
             skinned: Skinned::new(),
+            prim_test: PrimTest::new(),
         }
     }
 
@@ -212,6 +217,10 @@ impl App {
 
         gl::BindTexture(gl::TEXTURE_2D, self.textures[(self.texture_index + 1) % self.textures.len()]);
         self.sphere.render(rotation);
+
+        gl::Disable(gl::TEXTURE_2D);
+        gl::Disable(gl::LIGHTING);
+        self.prim_test.render(rotation);
 
         gl::context_end();
 
