@@ -11,3 +11,10 @@ pub fn LookAt(eyex: f32, eyey: f32, eyez: f32,
                                  upx, upy, upz);
     }
 }
+
+#[inline(always)]
+pub fn Perspective(fovy: f32, aspect: f32, z_near: f32, z_far: f32) {
+    unsafe {
+        libdragon_sys::gluPerspective(fovy, aspect, z_near, z_far);
+    }
+}

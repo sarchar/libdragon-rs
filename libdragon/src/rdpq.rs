@@ -103,6 +103,52 @@ pub fn detach_wait() {
 }
 
 // rdpq_mode.h
+#[derive(Copy, Clone)]
+pub enum Dither {
+    SquareSquare,
+    SquareInvSquare,
+    SquareNoise,
+    SquareNone,
+
+    BayerBayer,
+    BayerInvBayer,
+    BayerNoise,
+    BayerNone,
+
+    NoiseSquare,
+    NoiseInvSquare,
+    NoiseNoise,
+    NoiseNone,
+
+    NoneBayer,
+    NoneInvBayer,
+    NoneNoise,
+    NoneNone,
+}
+
+impl Into<libdragon_sys::rdpq_dither_s> for Dither {
+    fn into(self) -> libdragon_sys::rdpq_dither_s {
+        match self {
+            Dither::SquareSquare => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_SQUARE,
+            Dither::SquareInvSquare => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_INVSQUARE,
+            Dither::SquareNoise => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_NOISE,
+            Dither::SquareNone => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_NONE,
+            Dither::BayerBayer => libdragon_sys::rdpq_dither_s_DITHER_BAYER_BAYER,
+            Dither::BayerInvBayer => libdragon_sys::rdpq_dither_s_DITHER_BAYER_INVBAYER,
+            Dither::BayerNoise => libdragon_sys::rdpq_dither_s_DITHER_BAYER_NOISE,
+            Dither::BayerNone => libdragon_sys::rdpq_dither_s_DITHER_BAYER_NONE,
+            Dither::NoiseSquare => libdragon_sys::rdpq_dither_s_DITHER_NOISE_SQUARE,
+            Dither::NoiseInvSquare => libdragon_sys::rdpq_dither_s_DITHER_NOISE_INVSQUARE,
+            Dither::NoiseNoise => libdragon_sys::rdpq_dither_s_DITHER_NOISE_NOISE,
+            Dither::NoiseNone => libdragon_sys::rdpq_dither_s_DITHER_NOISE_NONE,
+            Dither::NoneBayer => libdragon_sys::rdpq_dither_s_DITHER_NONE_BAYER,
+            Dither::NoneInvBayer => libdragon_sys::rdpq_dither_s_DITHER_NONE_INVBAYER,
+            Dither::NoneNoise => libdragon_sys::rdpq_dither_s_DITHER_NONE_NOISE,
+            Dither::NoneNone => libdragon_sys::rdpq_dither_s_DITHER_NONE_NONE,
+        }
+    }
+}
+
 pub enum Filter {
     Point,
     Bilinear,
