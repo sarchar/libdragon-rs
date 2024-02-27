@@ -1,3 +1,4 @@
 /target
 libdragon-sys/toolchain
-*/**/.libdragon-sys-env
+*/**/.libdragon-env
+*/**/.libdragon-just

@@ -1,34 +1,10 @@
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use libdragon_build::{Result, Build};
 
-fn main() -> std::io::Result<()> {
-    let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-
-    // Store DEP_LIBDRAGON_SYS_* env vars in an .env file
-    let mut vars = vec![];
-    env::vars().for_each(|var| {
-        if var.0.starts_with("DEP_LIBDRAGON_SYS_") {
-            vars.push(var);
-        }
-    });
-
-    let mut fp = File::create(src_dir.join(".libdragon-sys-env"))?;
-    for var in vars {
-        writeln!(&mut fp, "{}={}", var.0, var.1)?;
-    }
-
-    // Store path to the elf in the .env file
-    let pkg_name = env::var("CARGO_PKG_NAME").unwrap();
-    writeln!(&mut fp, "ELF_FILE={}", out_dir.join("..").join("..").join("..").canonicalize()?.join(pkg_name).display())?;
-
-    // Export N64_INST
-    writeln!(&mut fp, "N64_INST={}", env::var("DEP_LIBDRAGON_SYS_N64_INST").unwrap())?;
-
-    // Pass the linker script to the linker
-    println!("cargo:rustc-link-arg=-T{}", env::var("DEP_LIBDRAGON_SYS_LINKER_SCRIPT").unwrap());
-
-    Ok(())
+fn main() -> Result<()> {
+    Build::new()
+        .set_env_file(".libdragon-env")
+        .set_just_file(".libdragon-just")
+        .set_game_name("SPRITEMAP")
+        .enable_rsp_compile()
+        .build()
 }

@@ -7,3 +7,6 @@ rust-version.workspace = true
 
 [dependencies]
 libdragon = { path = "../../libdragon" }
+
+[build-dependencies]
+libdragon-build = { path = "../../libdragon-build" }

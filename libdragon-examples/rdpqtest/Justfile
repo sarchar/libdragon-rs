@@ -1,66 +1,18 @@
-set dotenv-filename := ".libdragon-sys-env"
+set dotenv-filename := ".libdragon-env"
+import? '.libdragon-just'
 
 default:
     @echo Nothing to do
 
 build: 
     cargo build
-    @just finish-rom
+    @just lb-finish-rom
 
 build-release: 
     cargo build --release
-    @just finish-rom
+    @just lb-finish-rom
 
 build-release-verbose: 
     cargo build --release --verbose
-    @just finish-rom
-
-finish-rom:
-    just build-assets
-
-    @"$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64sym "$ELF_FILE" "$ELF_FILE.sym"
-    @cp "$ELF_FILE" "$ELF_FILE.stripped"
-    @"$DEP_LIBDRAGON_SYS_TOOLCHAIN_BIN"strip "$ELF_FILE.stripped"
-
-    @if [ -f "$ELF_FILE.dfs" ]; then \
-        "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64tool -t "GAME" \
-            --toc -o "$ELF_FILE.z64" --align 256 "$ELF_FILE.stripped" --align 8 "$ELF_FILE.sym" --align 16 "$ELF_FILE.dfs"; \
-    else \
-        "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64tool -t "GAME" \
-            --toc -o "$ELF_FILE.z64" --align 256 "$ELF_FILE.stripped" --align 8 "$ELF_FILE.sym" --align 8; \
-    fi
-
-    @echo "ROM is in $ELF_FILE.z64"
-
-build-assets:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    fs=$(dirname "$ELF_FILE")/filesystem
-
-    # create filesystem dir
-    if [ ! -d "$fs" ]; then
-        mkdir -p "$fs"
-    fi
-
-    # compile sprites
-    for sprite in `find assets -name "*.png"` ; do 
-        fn=$(basename "$sprite" .png)
-        if [ "$sprite" -nt "$fs/$fn.sprite" ]; then 
-            echo Compiling $sprite
-            if [ "$fn" = "n64brew" ]; then
-                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format RGBA16 --tiles 32,32 "$sprite"
-            elif [ "$fn" = "tiles" ]; then
-                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format CI4 --tiles 32,32 "$sprite"
-            else 
-                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" "$sprite"
-            fi
-        fi
-    done
-
-    # make dfs
-    if [ "$fs" -nt "$ELF_FILE.dfs" ]; then
-        "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mkdfs "$ELF_FILE.dfs" "$fs" >/dev/null
-    fi
-
-    #echo "$fs"
+    @just lb-finish-rom
 

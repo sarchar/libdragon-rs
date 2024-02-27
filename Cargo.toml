@@ -2,6 +2,7 @@
 members = [
     "libdragon",
     "libdragon-sys",
+    "libdragon-build",
     "libdragon-examples/*",
 ]
 default-members = [
