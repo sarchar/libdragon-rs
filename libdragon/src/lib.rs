@@ -2,6 +2,8 @@
 #![feature(asm_experimental_arch)]
 #![feature(panic_info_message)]
 
+use core::arch::asm;
+
 use cstr_core::{CStr, CString};
 
 // Re-exports of common types and macros
@@ -145,4 +147,67 @@ pub fn disable_interrupts() {
 #[inline(always)]
 pub fn enable_interrupts() {
     unsafe { libdragon_sys::enable_interrupts(); }
+}
+
+pub trait N64Pointer<'a> {
+    fn uncached_mut(&'a mut self) -> &'a mut Self;
+    fn uncached_ref(&'a self) -> &'a Self;
+    fn physical_ref(&'a self) -> &'a Self;
+}
+
+impl<'a, T> N64Pointer<'a> for [T] {
+    fn uncached_mut(&'a mut self) -> &'a mut Self {
+        let len = self.len();
+        unsafe {
+            ::core::slice::from_raw_parts_mut(((self.as_mut_ptr() as u32) | 0x2000_0000) as *mut T, len)
+        }
+    }
+
+    fn uncached_ref(&'a self) -> &'a Self {
+        let len = self.len();
+        unsafe {
+            ::core::slice::from_raw_parts(((self.as_ptr() as u32) | 0x2000_0000) as *const T, len)
+        }
+    }
+
+    fn physical_ref(&'a self) -> &'a Self {
+        let len = self.len();
+        unsafe {
+            ::core::slice::from_raw_parts(((self.as_ptr() as u32) & !0xE000_0000) as *const T, len)
+        }
+    }
+}
+
+pub fn uncached_mut<'a, T>(v: &'a mut T) -> &'a mut T {
+    unsafe {
+        &mut *((((v as *mut T as u32) & 0x1FFF_FFFF) | 0xA000_0000) as *mut T)
+    }
+}
+
+pub fn uncached_ref<'a, T>(v: &'a T) -> &'a T {
+    unsafe {
+        &*((((v as *const T as u32) & 0x1FFF_FFFF) | 0xA000_0000) as *const T)
+    }
+}
+
+pub fn physical_ref<'a, T>(v: &'a T) -> &'a T {
+    unsafe {
+        &*(((v as *const T as u32) & !0xE000_0000) as *const T)
+    }
+}
+
+pub fn invalidate_cache<T>(v: *const T, write_back: bool) {
+    if write_back {
+        unsafe { 
+            asm!(".set noat", 
+                 "cache (5<<2)|1, 0({reg})", 
+                 reg = in(reg) v as u32) 
+        };
+    } else {
+        unsafe { 
+            asm!(".set noat", 
+                 "cache (4<<2)|1, 0({reg})", 
+                 reg = in(reg) v as u32) 
+        };
+    }
 }

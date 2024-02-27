@@ -47,7 +47,13 @@ build-assets:
         fn=$(basename "$sprite" .png)
         if [ "$sprite" -nt "$fs/$fn.sprite" ]; then 
             echo Compiling $sprite
-            "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" "$sprite"
+            if [ "$fn" = "n64brew" ]; then
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format RGBA16 --tiles 32,32 "$sprite"
+            elif [ "$fn" = "tiles" ]; then
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format CI4 --tiles 32,32 "$sprite"
+            else 
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" "$sprite"
+            fi
         fi
     done
 
