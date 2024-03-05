@@ -153,7 +153,10 @@ async fn main() -> Result<()> {
 
     // set vars for parent crates
     println!("cargo:n64_inst={}", toolchain_dir.display());
+    println!("cargo:n64_includedir={}/mips64-libdragon-elf/inlude", toolchain_dir.display());
+    println!("cargo:n64_libdir={}/mips64-libdragon-elf/lib", toolchain_dir.display());
     println!("cargo:linker_script={}/n64.ld", libdragon_dir.display());
+    println!("cargo:rsp_linker_script={}/rsp.ld", libdragon_dir.display());
     println!("cargo:toolchain_bin={}/bin/mips64-libdragon-elf-", toolchain_dir.display());
     println!("cargo:n64_tooldir={}/bin", toolchain_dir.display());
     println!("cargo:header={}/mips64-libdragon-elf/lib/header", toolchain_dir.display());

@@ -766,12 +766,17 @@ dependencies = [
  "cstr_core",
  "embedded-io",
  "libdragon-sys",
+ "paste",
  "typed-path",
 ]
 
 [[package]]
 name = "libdragon-build"
 version = "0.1.0"
+dependencies = [
+ "execute",
+ "glob",
+]
 
 [[package]]
 name = "libdragon-sys"
@@ -1001,6 +1006,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
 name = "pbkdf2"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1168,6 +1179,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "rspqdemo"
+version = "0.1.0"
+dependencies = [
+ "core_maths",
+ "libdragon",
+ "libdragon-build",
 ]
 
 [[package]]

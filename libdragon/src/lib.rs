@@ -17,6 +17,8 @@ pub use alloc::boxed::Box;
 pub use alloc::format;
 pub use alloc::sync::Arc;
 
+pub use paste::paste;
+
 mod allocator;
 mod panic;
 
@@ -153,6 +155,7 @@ pub trait N64Pointer<'a> {
     fn uncached_mut(&'a mut self) -> &'a mut Self;
     fn uncached_ref(&'a self) -> &'a Self;
     fn physical_ref(&'a self) -> &'a Self;
+    fn cache_hit_invalidate(&self, write_back: bool);
 }
 
 impl<'a, T> N64Pointer<'a> for [T] {
@@ -176,6 +179,11 @@ impl<'a, T> N64Pointer<'a> for [T] {
             ::core::slice::from_raw_parts(((self.as_ptr() as u32) & !0xE000_0000) as *const T, len)
         }
     }
+
+    fn cache_hit_invalidate(&self, write_back: bool) {
+        let size = self.len() * ::core::mem::size_of::<T>();
+        data_cache_hit_invalidate(self.as_ptr(), size, write_back);
+    }
 }
 
 pub fn uncached_mut<'a, T>(v: &'a mut T) -> &'a mut T {
@@ -196,18 +204,23 @@ pub fn physical_ref<'a, T>(v: &'a T) -> &'a T {
     }
 }
 
-pub fn invalidate_cache<T>(v: *const T, write_back: bool) {
-    if write_back {
-        unsafe { 
-            asm!(".set noat", 
-                 "cache (5<<2)|1, 0({reg})", 
-                 reg = in(reg) v as u32) 
-        };
-    } else {
-        unsafe { 
-            asm!(".set noat", 
-                 "cache (4<<2)|1, 0({reg})", 
-                 reg = in(reg) v as u32) 
-        };
+pub fn data_cache_hit_invalidate<T>(v: *const T, size: usize, write_back: bool) {
+    let base = v as u32;
+    assert!(base & 0x0F == 0, "address must be a multiple of 16");
+    assert!(size & 0x0F == 0, "size must be a multiple of 16");
+    for addr in (base..(base + size as u32)).step_by(16) {
+        if write_back {
+            unsafe { 
+                asm!(".set noat", 
+                     "cache (5<<2)|1, 0({reg})", 
+                     reg = in(reg) addr) 
+            };
+        } else {
+            unsafe { 
+                asm!(".set noat", 
+                     "cache (4<<2)|1, 0({reg})", 
+                     reg = in(reg) addr) 
+            };
+        }
     }
 }

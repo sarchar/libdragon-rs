@@ -5,3 +5,5 @@ edition = "2021"
 rust-version.workspace = true
 
 [dependencies]
+execute = "0.2"
+glob = "0.3"
