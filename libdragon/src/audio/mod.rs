@@ -3,6 +3,7 @@ use crate::*;
 
 pub mod mixer;
 pub mod samplebuffer;
+pub mod wav64;
 
 pub fn init(freq: i32, numbuffers: usize) {
     unsafe {

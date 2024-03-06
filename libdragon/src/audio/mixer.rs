@@ -215,6 +215,8 @@ pub struct Waveform {
 }
 
 impl Waveform {
+    pub(crate) fn from_ptr(ptr: *mut libdragon_sys::waveform_s) -> Self { Self { ptr: ptr } }
+
     /// Start playing the waveform on the specified channel.
     ///
     /// See [`mixer_ch_play`](libdragon_sys::mixer_ch_play) for details.
