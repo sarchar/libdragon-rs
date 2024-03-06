@@ -71,6 +71,15 @@ lb-build-assets:
                 "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/audioconv64 -v -o "$fs" "$xm"
             fi
         done
+
+        # AUDIOCONV (.ym)
+        for ym in `find assets -name "*.ym"` ; do
+            fn=$(basename "$ym" .ym)
+            if [ "$ym" -nt "$fs/$fn.ym64" -o ! -f "$fs/$fn.ym64" ]; then
+                echo Compiling $ym
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/audioconv64 --ym-compress false -v -o "$fs" "$ym"
+            fi
+        done
     fi
 
     # copy over files in ./filesystem

@@ -8,6 +8,7 @@ use libdragon::graphics::Graphics;
 
 use audio::mixer;
 use audio::xm64::Xm64;
+use audio::ym64::Ym64;
 
 #[no_mangle]
 extern "C" fn main() -> ! {
@@ -39,14 +40,27 @@ extern "C" fn main() -> ! {
     }
 
     let mut play_index = 0;
-    let mut xm = None;
+    let mut xm: Option<Xm64> = None;
+    let mut ym: Option<Ym64> = None;
+    let mut ym_playing = false;
 
     loop {
-        if xm.is_none() {
-            let mut newxm = Xm64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
-            newxm.set_loop(true);
-            newxm.play(0);
-            xm = Some(newxm);
+        if xm.is_none() && ym.is_none() {
+            let slower = music_files[play_index].to_lowercase();
+            if slower.ends_with(".xm64") {
+                let mut newxm = Xm64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
+                newxm.set_loop(true);
+                newxm.play(0);
+                xm = Some(newxm);
+            } else if slower.ends_with(".ym64") {
+                eprintln!("YM disabled temporarily due to an unknown crash");
+                //let mut newym = Ym64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
+                //newym.play(0);
+                //ym_playing = true;
+                //ym = Some(newym);
+            } else {
+                panic!("can't play {}", music_files[play_index]);
+            }
             eprintln!("Started playing {}", music_files[play_index]);
         }
 
@@ -63,11 +77,18 @@ extern "C" fn main() -> ! {
         g.draw_text(10, 20, &format!("Playing #{}: {}", play_index, music_files[play_index]));
         g.draw_text(10, 40, "L/R to change song");
 
-        let mut pat = 0;
-        let mut row = 0;
-        let mut secs = 0.0;
-        xm.as_ref().unwrap().tell(&mut pat, &mut row, &mut secs);
-        g.draw_text(30, 70, &format!("Pattern: {:2} Row: {:3} Secs: {}", pat, row, secs));
+        if let Some(xmr) = xm.as_ref() {
+            let mut pat = 0;
+            let mut row = 0;
+            let mut secs = 0.0;
+            xmr.tell(&mut pat, &mut row, &mut secs);
+            g.draw_text(30, 70, &format!("Pattern: {:2} Row: {:3} Secs: {}", pat, row, secs));
+        } else if let Some(ymr) = ym.as_ref() {
+            let mut pos = 0;
+            let mut secs = 0.0;
+            ymr.tell(&mut pos, &mut secs);
+            g.draw_text(40, 70, &format!("Position: {:2} Secs: {}", pos, secs));
+        }
         g.finish().show();
 
         joypad::poll();
@@ -75,18 +96,23 @@ extern "C" fn main() -> ! {
 
         if pressed.r {
             play_index = core::cmp::min(play_index + 1, music_files.len() - 1);
-            //xm.stop();
             xm = None;
+            ym = None;
         }
 
         if pressed.l {
             play_index = core::cmp::max(play_index - 1, 0);
-            //xm.stop();
             xm = None;
+            ym = None;
         }
 
         if pressed.start {
-            if xm.as_mut().unwrap().playing() { xm.as_mut().unwrap().stop(); } else { xm.as_mut().unwrap().play(0); };
+            if let Some(xmr) = xm.as_mut() {
+                if xmr.playing() { xmr.stop(); } else { xmr.play(0); };
+            } else if let Some(ymr) = ym.as_mut() {
+                if ym_playing { ymr.stop(); } else { ymr.play(0); };
+                ym_playing = !ym_playing;
+            }
         }
     }
 }
