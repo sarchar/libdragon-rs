@@ -53,6 +53,15 @@ lb-build-assets:
                 "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mkfont -c 0 -o "$fs" "$font"
             fi
         done
+
+        # AUDIOCONV
+        for wav in `find assets -name "*.wav"` ; do
+            fn=$(basename "$wav" .wav)
+            if [ "$wav" -nt "$fs/$fn.wav64" -o ! -f "$fs/$fn.wav64" ]; then
+                echo Compiling $wav
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/audioconv64 --wav-compress 3 -v -o "$fs" "$wav"
+            fi
+        done
     fi
 
     # copy over files in ./filesystem
