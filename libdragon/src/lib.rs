@@ -31,7 +31,6 @@ pub mod gl;
 pub mod glu;
 pub mod graphics;
 pub mod joypad;
-pub mod mixer;
 pub mod rdp;
 pub mod rdpq;
 pub mod rspq;

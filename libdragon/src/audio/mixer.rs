@@ -1,15 +1,13 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use crate::*;
+use audio::samplebuffer;
 
 /// See [`MIXER_MAX_CHANNELS`](libdragon_sys::MIXER_MAX_CHANNELS) for details.
 pub const MIXER_MAX_CHANNELS: usize = libdragon_sys::MIXER_MAX_CHANNELS as usize;
 
 /// See [`MIXER_LOOP_OVERREAD`](libdragon_sys::MIXER_LOOP_OVERREAD) for details.
 pub const MIXER_LOOP_OVERREAD: usize = libdragon_sys::MIXER_LOOP_OVERREAD as usize;
-
-/// See [`struct samplebuffer_s`](libdragon_sys::samplebuffer_s) for details.
-pub struct SampleBuffer;
 
 /// The mixer system must be initialized after the audio system.
 ///
@@ -201,12 +199,7 @@ impl Drop for MixerEvent {
 /// closure.
 ///
 /// See [`WaveformRead`](libdragon_sys::WaveformRead) for details.
-pub type WaveformReadCallback = Box<dyn FnMut(&mut SampleBuffer, usize, usize, bool) + 'static + Sync + Send>;
-
-/// Internal structure used to keep track of WaveformReadCallback
-struct _WaveformReadInternal {
-    _user_callback: WaveformReadCallback,
-}
+pub type WaveformReadCallback = Box<dyn FnMut(&mut samplebuffer::SampleBuffer, usize, usize, bool) + 'static + Sync + Send>;
 
 /// Maximum number of samples in a waveform
 pub const WAVEFORM_MAX_LEN: usize = libdragon_sys::WAVEFORM_MAX_LEN as usize;

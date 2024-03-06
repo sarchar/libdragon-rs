@@ -1,6 +1,9 @@
 
 use crate::*;
 
+pub mod mixer;
+pub mod samplebuffer;
+
 pub fn init(freq: i32, numbuffers: usize) {
     unsafe {
         libdragon_sys::audio_init(freq, numbuffers as i32);
