@@ -17,24 +17,36 @@ pub use alloc::boxed::Box;
 pub use alloc::format;
 pub use alloc::sync::Arc;
 
+#[doc(hidden)]
 pub use paste::paste;
 
 mod allocator;
 mod panic;
 
+/// Audio - mixer, wav64, etc.
 pub mod audio;
+/// Console emulator
 pub mod console;
+/// Debug interface
 pub mod debug;
+/// DragonFS
 pub mod dfs;
+/// Display
 pub mod display;
+/// OpenGL support
 pub mod gl;
+/// GLU helper functions
 pub mod glu;
+/// Graphics (lines, text, etc.)
 pub mod graphics;
+/// Input support
 pub mod joypad;
 pub mod rdp;
 pub mod rdpq;
 pub mod rspq;
+/// Sprites (2D renderable objects)
 pub mod sprite;
+/// System timer support
 pub mod timer;
 
 #[derive(Debug)]
@@ -75,6 +87,7 @@ pub fn wait_ms(ms: u32) {
     }
 }
 
+#[doc(hidden)]
 pub fn libdragon_fprintf(msg: &str) -> i32 {
     let c_str   = CString::new(msg).unwrap();
     let fmt_str = CString::new("%s").unwrap();
@@ -83,6 +96,7 @@ pub fn libdragon_fprintf(msg: &str) -> i32 {
     }
 }
 
+#[doc(hidden)]
 pub fn libdragon_printf(msg: &str) -> i32 {
     let c_str   = CString::new(msg).unwrap();
     let fmt_str = CString::new("%s").unwrap();
@@ -117,6 +131,7 @@ macro_rules! println {
 // $gp before each and every libdragon call.  There's still a possibility that llvm
 // will change gp before the library call but this should make it less likely.
 // TODO TODO TODO fix gpopt !
+#[doc(hidden)]
 #[macro_export]
 macro_rules! protect_gp {
     ( $($s:stmt);* ) => {
@@ -135,18 +150,18 @@ macro_rules! protect_gp {
     }
 }
 
-pub fn __boot_consoletype() -> i32 {
+pub fn boot_consoletype() -> i32 {
     unsafe { libdragon_sys::__boot_consoletype }
 }
 
 #[inline(always)]
 pub fn rsp_frequency() -> u64 {
-    if __boot_consoletype() != 0 { 96000000 } else { 62500000 }
+    if boot_consoletype() != 0 { 96000000 } else { 62500000 }
 }
 
 #[inline(always)]
 pub fn cpu_frequency() -> u64 {
-    if __boot_consoletype() != 0 { 144000000 } else { 93750000 }
+    if boot_consoletype() != 0 { 144000000 } else { 93750000 }
 }
 
 #[inline(always)]

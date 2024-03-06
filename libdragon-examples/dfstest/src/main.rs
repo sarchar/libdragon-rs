@@ -97,6 +97,9 @@ impl DemoDir {
                 dfs::EntryType::File => {
                     println!("{}", entry.filename.display());
                 },
+
+                // shouldn't show up with dir_findfirst
+                dfs::EntryType::Eof => {},
             }
         }
     }

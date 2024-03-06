@@ -44,4 +44,7 @@ build-examples-release-verbose:
     done
 
 clean:
+    cargo clean
+
+clean-release:
     cargo clean --release
