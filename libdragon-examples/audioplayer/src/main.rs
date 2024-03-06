@@ -53,11 +53,10 @@ extern "C" fn main() -> ! {
                 newxm.play(0);
                 xm = Some(newxm);
             } else if slower.ends_with(".ym64") {
-                eprintln!("YM disabled temporarily due to an unknown crash");
-                //let mut newym = Ym64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
-                //newym.play(0);
-                //ym_playing = true;
-                //ym = Some(newym);
+                let mut newym = Ym64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
+                newym.play(0);
+                ym_playing = true;
+                ym = Some(newym);
             } else {
                 panic!("can't play {}", music_files[play_index]);
             }

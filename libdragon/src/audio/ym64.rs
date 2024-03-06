@@ -7,7 +7,7 @@ use crate::*;
 pub struct Ym64 {
     ptr: *mut libdragon_sys::ym64player_t,
     backing_instance: Option<core::pin::Pin<Box<libdragon_sys::ym64player_t>>>,
-    song_info: libdragon_sys::ym64player_songinfo_t,
+    song_info: Box<libdragon_sys::ym64player_songinfo_t>,
 }
 
 impl Ym64 {
@@ -18,17 +18,24 @@ impl Ym64 {
         let path_bytes: &[u8] = path.as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
-        let mut obj: core::mem::MaybeUninit<libdragon_sys::ym64player_t> = core::mem::MaybeUninit::uninit();
-        let mut info: core::mem::MaybeUninit<libdragon_sys::ym64player_songinfo_t> = core::mem::MaybeUninit::uninit();
+        let mut obj = Box::pin(unsafe { 
+            core::mem::MaybeUninit::<libdragon_sys::ym64player_t>::zeroed().assume_init() 
+        });
+
+        let mut info: Box::new(unsafe { 
+            core::mem::MaybeUninit::<libdragon_sys::ym64player_songinfo_t>::zeroed().assume_init() 
+        });
+
         unsafe {
-            libdragon_sys::ym64player_open(obj.as_mut_ptr(), cpath.as_ptr(), info.as_mut_ptr());
+            libdragon_sys::ym64player_open(obj.as_mut().get_mut() as *mut _, cpath.as_ptr(), 
+                                           info.as_mut().get_mut() as *mut _);
         }
 
-        let mut backing_instance = Box::pin(unsafe { obj.assume_init() });
+        let mut backing_instance = obj;
         Ok(Self {
             ptr: backing_instance.as_mut().get_mut(),
             backing_instance: Some(backing_instance),
-            song_info: unsafe { info.assume_init() },
+            song_info: info,
         })
     }
 

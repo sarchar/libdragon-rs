@@ -73,7 +73,7 @@ pub fn pause(pause: bool) {
 /// Return whether there is an empty buffer to write to
 ///
 /// See [`audio_can_write`](libdragon_sys::audio_can_write) for details.
-pub fn audio_can_write() -> bool {
+pub fn can_write() -> bool {
     unsafe {
         libdragon_sys::audio_can_write() != 0
     }
