@@ -85,7 +85,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    /// Create a new timer.  See [`timer_init`](libdragon_sys::timer_new) for details.
+    /// Create a new timer.  See [`timer_init`](libdragon_sys::new_timer) for details.
     ///
     /// Dropping the returned Timer will call [`delete_timer`](libdragon_sys::delete_timer). 
     pub fn new(ticks: i32, mode: Mode, callback: Box<dyn Fn(i32) + 'static + Sync + Send>) -> Timer {

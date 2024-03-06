@@ -128,7 +128,7 @@ impl RspqUcode {
 
     /// The caller must know the size of the state block
     /// The slice is returned in the cached rdram segment, so if you need uncached access
-    /// call [T].uncached_mut().
+    /// call \[T\].uncached_mut().
     #[inline(always)]
     pub fn get_state_mut<'a, T>(&'a mut self, count: usize) -> &'a mut [T] {
         unsafe {

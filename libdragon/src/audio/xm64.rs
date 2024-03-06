@@ -157,9 +157,9 @@ impl Xm64 {
         todo!("need an XmContext wrapper")
     }
 
-    /// Access the [Waveform] for this Xm64.
+    /// Access the [Waveform](crate::audio::mixer::Waveform) for this Xm64.
     ///
-    /// See [`struct xm64player_t`](libdragon_sys::xm64player_t::wave) for details.
+    /// See [`struct xm64player_t`](libdragon_sys::xm64player_t::waves) for details.
     pub fn wave(&mut self, idx: usize) -> audio::mixer::Waveform {
         let waves: &mut [libdragon_sys::waveform_t] = unsafe {
             core::slice::from_raw_parts_mut((*self.ptr).waves, self.nwaves())

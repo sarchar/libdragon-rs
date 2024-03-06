@@ -55,7 +55,7 @@ impl Wav64 {
         }
     }
 
-    /// Access the [Waveform] for this Wav64.
+    /// Access the [Waveform](crate::audio::mixer::Waveform) for this Wav64.
     ///
     /// See [`struct wav64_t`](libdragon_sys::wav64_t::wave) for details.
     pub fn wave(&mut self) -> audio::mixer::Waveform {

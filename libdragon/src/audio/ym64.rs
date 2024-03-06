@@ -93,7 +93,7 @@ impl Ym64 {
         todo!("need an XmContext wrapper")
     }
 
-    /// Access the [Waveform] for this Ym64.
+    /// Access the [Waveform](crate::audio::mixer::Waveform) for this Ym64.
     ///
     /// See [`struct ym64player_t`](libdragon_sys::ym64player_t::wave) for details.
     pub fn wave(&mut self) -> audio::mixer::Waveform {
