@@ -19,6 +19,7 @@ tokio = { version = "1.36", features = ["full"] }
 error-chain = "0.12"
 tempfile = "3.10"
 zip = "0.6"
+doxygen-rs = "0.4"
 
 
 [features]

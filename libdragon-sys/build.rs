@@ -15,6 +15,16 @@ error_chain! {
     }
 }
 
+#[derive(Debug)]
+struct Cb;
+
+impl bindgen::callbacks::ParseCallbacks for Cb {
+    fn process_comment(&self, comment: &str) -> Option<String> {
+        eprintln!("cmt: {:?}", comment);
+        Some(doxygen_rs::transform(comment))
+    }
+}
+
 const TOOLCHAIN_URL: &str = "https://github.com/sarchar/libdragon/releases/download/toolchain-continuous-prerelease/gcc-toolchain-mips64-linux.zip";
 
 #[tokio::main]
@@ -143,6 +153,7 @@ async fn main() -> Result<()> {
                         .clang_arg(format!("-I{}/mips64-libdragon-elf/include", toolchain_dir.display()))
                         .header("wrapper.h")
                         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+                        .parse_callbacks(Box::new(Cb {}))
                         .use_core()
                         .generate()
                         .expect("Unable to generate a binding");
