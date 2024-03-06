@@ -31,6 +31,7 @@ pub mod gl;
 pub mod glu;
 pub mod graphics;
 pub mod joypad;
+pub mod mixer;
 pub mod rdp;
 pub mod rdpq;
 pub mod rspq;
@@ -41,6 +42,13 @@ pub mod timer;
 pub enum LibDragonError {
     DfsError { error: dfs::DfsError },
     ErrnoError { errno: u32 },
+    Utf8Error { error: core::str::Utf8Error },
+}
+
+impl From<core::str::Utf8Error> for LibDragonError {
+    fn from(error: core::str::Utf8Error) -> Self {
+        Self::Utf8Error { error: error }
+    }
 }
 
 pub type Result<T> = core::result::Result<T, LibDragonError>;
