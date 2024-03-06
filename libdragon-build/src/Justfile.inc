@@ -54,12 +54,21 @@ lb-build-assets:
             fi
         done
 
-        # AUDIOCONV
+        # AUDIOCONV (.wav)
         for wav in `find assets -name "*.wav"` ; do
             fn=$(basename "$wav" .wav)
             if [ "$wav" -nt "$fs/$fn.wav64" -o ! -f "$fs/$fn.wav64" ]; then
                 echo Compiling $wav
                 "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/audioconv64 --wav-compress 3 -v -o "$fs" "$wav"
+            fi
+        done
+
+        # AUDIOCONV (.xm)
+        for xm in `find assets -name "*.xm"` ; do
+            fn=$(basename "$xm" .xm)
+            if [ "$xm" -nt "$fs/$fn.xm64" -o ! -f "$fs/$fn.xm64" ]; then
+                echo Compiling $xm
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/audioconv64 -v -o "$fs" "$xm"
             fi
         done
     fi

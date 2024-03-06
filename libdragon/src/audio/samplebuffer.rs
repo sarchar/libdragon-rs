@@ -113,7 +113,9 @@ impl SampleBuffer {
     ///
     /// See [`samplebuffer_set_waveform`](libdragon_sys::samplebuffer_set_waveform) for details.
     pub fn set_waveform(&mut self, cb: WaveformReadCallback) {
-        assert!(self.waveform_read.is_none(), "cannot set waveform more than once");
+        if self.waveform_read.is_some() {
+            unimplemented!("cannot set waveform more than once");
+        }
 
         let cb = Box::new(WaveformReadInternal { user_callback: cb });
         let ctx = unsafe {
