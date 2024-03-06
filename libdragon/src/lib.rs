@@ -22,6 +22,7 @@ pub use paste::paste;
 mod allocator;
 mod panic;
 
+pub mod audio;
 pub mod console;
 pub mod debug;
 pub mod dfs;

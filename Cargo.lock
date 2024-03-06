@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "a440"
+version = "0.1.0"
+dependencies = [
+ "core_maths",
+ "libdragon",
+ "libdragon-build",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
