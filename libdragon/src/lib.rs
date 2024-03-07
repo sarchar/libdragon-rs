@@ -23,6 +23,8 @@ pub use paste::paste;
 mod allocator;
 mod panic;
 
+/// Asset subsystem
+pub mod asset;
 /// Audio - mixer, wav64, etc.
 pub mod audio;
 /// Console emulator

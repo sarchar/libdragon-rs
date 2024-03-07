@@ -338,7 +338,7 @@ pub fn rom_addr(path: &str) -> u32 {
 /// [Read] and [Seek] traits for useability.
 #[derive(Debug)]
 pub struct File {
-    fp: Option<*mut libdragon_sys::FILE>,
+    pub(crate) fp: Option<*mut libdragon_sys::FILE>,
 }
 
 impl File {
