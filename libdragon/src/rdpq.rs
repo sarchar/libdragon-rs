@@ -64,8 +64,8 @@ pub fn set_fill_color(color: graphics::Color) {
 
 // rdpq_attach.h
 pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
-    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
+    let color_null_surface = Surface::from_ptr(::core::ptr::null_mut());
+    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
     unsafe {
         libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
                                          surf_depth.unwrap_or(&depth_null_surface).ptr);
@@ -73,8 +73,8 @@ pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
 }
 
 pub fn attach_clear(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
-    let depth_null_surface = Surface { ptr: ::core::ptr::null_mut(), _backing_surface: None, needs_free: false };
+    let color_null_surface = Surface::from_ptr(::core::ptr::null_mut());
+    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
     unsafe {
         libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
                                          surf_depth.unwrap_or(&depth_null_surface).ptr);

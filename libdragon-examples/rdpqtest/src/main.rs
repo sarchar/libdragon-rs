@@ -56,7 +56,6 @@ impl App {
         }
 
         let tiles_sprite = Sprite::load(DfsPathBuf::from("rom:/tiles.sprite")).unwrap();
-        let tiles_surf = tiles_sprite.get_pixels();
 
         // Create a block for the background, so that we can replay it later.
         rspq::block_begin();
@@ -80,12 +79,16 @@ impl App {
         let tile_width = tiles_sprite.width() / (tiles_sprite.hslices() as u16);
         let tile_height = tiles_sprite.height() / (tiles_sprite.vslices() as u16);
 
-        for ty in (0..display_height).step_by(tile_height as usize) {
-            for tx in (0..display_width).step_by(tile_width as usize) {
-                let s = (rng.next_u32() % 2) * 32;
-                let t = (rng.next_u32() % 2) * 32;
-                rdpq::tex_upload_sub(rdpq::Tile(0), &tiles_surf, None, s as i32, t as i32, (s+32) as i32, (t+32) as i32);
-                rdpq::texture_rectangle(rdpq::Tile(0), tx as i32, ty as i32, (tx+32) as i32, (ty+32) as i32, s as i32, t as i32);
+        // block off tiles_surf so that it's dropped before the move of tiles_sprite above
+        {
+            let tiles_surf = tiles_sprite.get_pixels();
+            for ty in (0..display_height).step_by(tile_height as usize) {
+                for tx in (0..display_width).step_by(tile_width as usize) {
+                    let s = (rng.next_u32() % 2) * 32;
+                    let t = (rng.next_u32() % 2) * 32;
+                    rdpq::tex_upload_sub(rdpq::Tile(0), &tiles_surf, None, s as i32, t as i32, (s+32) as i32, (t+32) as i32);
+                    rdpq::texture_rectangle(rdpq::Tile(0), tx as i32, ty as i32, (tx+32) as i32, (ty+32) as i32, s as i32, t as i32);
+                }
             }
         }
 

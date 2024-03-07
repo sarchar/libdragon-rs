@@ -78,23 +78,23 @@ pub fn rgba32(r: u8, g: u8, b: u8, a: u8) -> Color {
     }
 }
 
-pub struct Graphics {
-    surface: Option<Surface>,
+pub struct Graphics<'a> {
+    surface: Option<Surface<'a>>,
 }
 
-impl Graphics {
-    pub fn new(surface: Surface) -> Self {
+impl<'a> Graphics<'a> {
+    pub fn new(surface: Surface<'a>) -> Self {
         Self {
             surface: Some(surface)
         }
     }
 
-    pub fn surface(&self) -> &Surface {
+    pub fn surface(&self) -> &Surface<'a> {
         self.surface.as_ref().unwrap()
     }
 
     /// Take ownership of the underlying Surface. The Graphics object is no longer valid.
-    pub fn finish(&mut self) -> Surface {
+    pub fn finish(&mut self) -> Surface<'a> {
         core::mem::replace(&mut self.surface, None).unwrap()
     }
 

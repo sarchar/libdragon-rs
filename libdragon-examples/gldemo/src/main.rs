@@ -67,9 +67,9 @@ static LIGHT_DIFFUSE: [[f32; 4]; 8] = [
 ];
 
 
-struct App {
+struct App<'a> {
     camera: Camera,
-    zbuffer: Surface,
+    zbuffer: Surface<'a>,
     _sprites: [Sprite; 4],
     textures: [u32; 4],
     texture_index: usize,
@@ -84,7 +84,7 @@ struct App {
     prim_test: PrimTest,
 }
 
-impl App {
+impl<'a> App<'a> {
     fn new() -> Self {
         let zbuffer = Surface::alloc(TexFormat::Rgba16, display::get_width(), display::get_height());
 

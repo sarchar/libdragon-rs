@@ -78,14 +78,13 @@ impl Sprite {
         }
 
         // pin the structure in place before getting memory address
-        let mut backing_surface = Box::pin(unsafe { surface.assume_init() });
+        let mut backing_instance = Box::pin(unsafe { surface.assume_init() });
 
         surface::Surface {
-            ptr: unsafe { 
-                core::mem::transmute(backing_surface.as_mut()) 
-            },
-            _backing_surface: Some(backing_surface),
+            ptr: backing_instance.as_mut().get_mut(),
+            _backing_instance: Some(backing_instance),
             needs_free: false,
+            phantom: core::marker::PhantomData,
         }
     }
 

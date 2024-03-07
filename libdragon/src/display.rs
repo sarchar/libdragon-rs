@@ -199,7 +199,7 @@ pub fn close() { unsafe { libdragon_sys::display_close(); } }
 /// Get a display buffer for rendering
 ///
 /// See [`display_get`](libdragon_sys::display_get) for details.
-pub fn get() -> Surface {
+pub fn get<'a>() -> Surface<'a> {
     let ptr = unsafe { libdragon_sys::display_get() };
     Surface::from_ptr(ptr)
 }
@@ -207,7 +207,7 @@ pub fn get() -> Surface {
 /// Try getting a display surface
 ///
 /// See [`display_try_get`](libdragon_sys::display_try_get) for details.
-pub fn try_get() -> Option<Surface> {
+pub fn try_get<'a>() -> Option<Surface<'a>> {
     let ptr = unsafe { libdragon_sys::display_try_get() };
 
     if ptr == ::core::ptr::null_mut() {
