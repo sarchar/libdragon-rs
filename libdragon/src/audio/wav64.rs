@@ -16,12 +16,13 @@ impl Wav64 {
         let path_bytes: &[u8] = path.as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
-        let mut obj: core::mem::MaybeUninit<libdragon_sys::wav64_t> = core::mem::MaybeUninit::uninit();
+        let mut backing_instance = Box::pin(unsafe {
+            core::mem::MaybeUninit::<libdragon_sys::wav64_t>::zeroed().assume_init()
+        });
         unsafe {
-            libdragon_sys::wav64_open(obj.as_mut_ptr(), cpath.as_ptr());
+            libdragon_sys::wav64_open(backing_instance.as_mut().get_mut() as *mut _, cpath.as_ptr());
         }
 
-        let mut backing_instance = Box::pin(unsafe { obj.assume_init() });
         Ok(Self {
             ptr: backing_instance.as_mut().get_mut(),
             backing_instance: Some(backing_instance),

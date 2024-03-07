@@ -43,12 +43,14 @@ impl SampleBuffer {
             core::slice::from_raw_parts_mut(mem, size)
         };
 
-        let mut sbuf: core::mem::MaybeUninit<libdragon_sys::samplebuffer_s> = core::mem::MaybeUninit::uninit();
+        let mut backing_instance = Box::pin(unsafe {
+            core::mem::MaybeUninit::<libdragon_sys::samplebuffer_s>::zeroed().assume_init()
+        });
+
         unsafe {
-            libdragon_sys::samplebuffer_init(sbuf.as_mut_ptr(), buf.as_mut_ptr(), size as i32);
+            libdragon_sys::samplebuffer_init(backing_instance.as_mut().get_mut() as *mut _, buf.as_mut_ptr(), size as i32);
         }
 
-        let mut backing_instance = Box::pin(unsafe { sbuf.assume_init() } );
         Self {
             ptr: backing_instance.as_mut().get_mut(),
             backing_instance: Some(backing_instance),

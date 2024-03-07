@@ -18,20 +18,19 @@ impl Ym64 {
         let path_bytes: &[u8] = path.as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
-        let mut obj = Box::pin(unsafe { 
+        let mut backing_instance = Box::pin(unsafe { 
             core::mem::MaybeUninit::<libdragon_sys::ym64player_t>::zeroed().assume_init() 
         });
 
-        let mut info: Box::new(unsafe { 
+        let mut info = Box::new(unsafe { 
             core::mem::MaybeUninit::<libdragon_sys::ym64player_songinfo_t>::zeroed().assume_init() 
         });
 
         unsafe {
-            libdragon_sys::ym64player_open(obj.as_mut().get_mut() as *mut _, cpath.as_ptr(), 
-                                           info.as_mut().get_mut() as *mut _);
+            libdragon_sys::ym64player_open(backing_instance.as_mut().get_mut() as *mut _, cpath.as_ptr(), 
+                                           info.as_mut() as *mut _);
         }
 
-        let mut backing_instance = obj;
         Ok(Self {
             ptr: backing_instance.as_mut().get_mut(),
             backing_instance: Some(backing_instance),

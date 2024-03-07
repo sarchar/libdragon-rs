@@ -195,8 +195,18 @@ pub struct ProfileSlot {
     name            : *const ::core::ffi::c_char,
 }
 
+impl Default for ProfileSlot {
+    fn default() -> Self {
+        Self {
+            total_ticks : 0,
+            sample_count: 0,
+            name        : ::core::ptr::null(),
+        }
+    }
+}
+
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct ProfileData {
     pub slots         : [ProfileSlot; PROFILE_SLOT_COUNT],
     pub total_ticks   : u64,
@@ -235,9 +245,11 @@ pub fn profile_dump() {
 }
 
 pub fn profile_get_data() -> ProfileData {
-    let mut data: core::mem::MaybeUninit<libdragon_sys::rspq_profile_data_s> = core::mem::MaybeUninit::uninit();
+    let mut data = Box::new(ProfileData::default());
     unsafe {
-        libdragon_sys::rspq_profile_get_data(data.as_mut_ptr());
-        core::mem::transmute(data)
+        libdragon_sys::rspq_profile_get_data(
+            core::mem::transmute::<_, *mut libdragon_sys::rspq_profile_data_t>(data.as_mut() as *mut _)
+        );
     }
+    *data.as_ref()
 }

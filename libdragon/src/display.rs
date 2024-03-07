@@ -242,17 +242,16 @@ impl Surface {
             fn surface_alloc_r(surface: *mut libdragon_sys::surface_t, format: libdragon_sys::tex_format_t, width: u32, height: u32);
         }
 
-        let mut surface: core::mem::MaybeUninit<libdragon_sys::surface_t> = core::mem::MaybeUninit::uninit();
+        let mut backing_surface = Box::pin(unsafe {
+            core::mem::MaybeUninit::<libdragon_sys::surface_t>::zeroed().assume_init()
+        });
+
         unsafe {
-            surface_alloc_r(surface.as_mut_ptr(), format.into(), width, height);
+            surface_alloc_r(backing_surface.as_mut().get_mut() as *mut _, format.into(), width, height);
         }
 
-        let mut backing_surface = Box::pin(unsafe { surface.assume_init() });
-
         display::Surface {
-            ptr: unsafe { 
-                core::mem::transmute(backing_surface.as_mut()) 
-            },
+            ptr: backing_surface.as_mut().get_mut(),
             _backing_surface: Some(backing_surface),
             needs_free: true,
         }
