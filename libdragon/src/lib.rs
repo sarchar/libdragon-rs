@@ -41,8 +41,11 @@ pub mod glu;
 pub mod graphics;
 /// Input support
 pub mod joypad;
+/// Direct RDP commands
 pub mod rdp;
+/// RDPQ module
 pub mod rdpq;
+/// RSPQ module
 pub mod rspq;
 /// Sprites (2D renderable objects)
 pub mod sprite;
