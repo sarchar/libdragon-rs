@@ -29,9 +29,9 @@ pub mod audio;
 pub mod console;
 /// Debug interface
 pub mod debug;
-/// DragonFS
+/// Dragon Filesystem
 pub mod dfs;
-/// Display
+/// Display subsystem
 pub mod display;
 /// OpenGL support
 pub mod gl;
@@ -49,6 +49,8 @@ pub mod rdpq;
 pub mod rspq;
 /// Sprites (2D renderable objects)
 pub mod sprite;
+/// Surface buffers used to draw images
+pub mod surface;
 /// System timer support
 pub mod timer;
 

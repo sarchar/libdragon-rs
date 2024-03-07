@@ -6,8 +6,9 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use libdragon::*;
 
 use libdragon::dfs::DfsPathBuf;
-use libdragon::display::{TextureFormat, Resolution, BitDepth, Gamma, FilterOptions};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::sprite::Sprite;
+use libdragon::surface::TexFormat;
 use libdragon::timer::Timer;
 
 use core_maths::*;
@@ -65,7 +66,7 @@ impl App {
         // know. This also shows how rdpq can transparently work in both modes.
         let mut tlut = false;
         let format = tiles_sprite.get_format();
-        if format == TextureFormat::Ci4 || format == TextureFormat::Ci8 {
+        if format == TexFormat::Ci4 || format == TexFormat::Ci8 {
             // If the sprite is paletted, turn on palette mode and load the
             // palette in TMEM. We use the mode stack for demonstration,
             // so that we show how a block can temporarily change the current

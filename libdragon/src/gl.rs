@@ -1055,7 +1055,7 @@ pub fn TexImage2D<T>(target: i32, level: i32, internalformat: i32, width: u32, h
 }
 
 #[inline(always)]
-pub fn SurfaceTexImageN64(target: i32, level: i32, surface: &display::Surface, texparms: rdpq::TexParms) {
+pub fn SurfaceTexImageN64(target: i32, level: i32, surface: &surface::Surface, texparms: rdpq::TexParms) {
     unsafe { libdragon_sys::glSurfaceTexImageN64(target as u32, level, surface.ptr, 
                                                  &mut Into::<libdragon_sys::rdpq_texparms_t>::into(texparms) as *mut libdragon_sys::rdpq_texparms_t) }
 }

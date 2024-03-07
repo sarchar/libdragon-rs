@@ -5,8 +5,9 @@
 use libdragon::*;
 
 use libdragon::dfs::DfsPathBuf;
-use libdragon::display::{TextureFormat, Resolution, BitDepth, Gamma, FilterOptions, Surface};
+use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::sprite::Sprite;
+use libdragon::surface::{TexFormat, Surface};
 use libdragon::rdpq::{TexParms, TexParmsST};
 
 mod camera;
@@ -85,7 +86,7 @@ struct App {
 
 impl App {
     fn new() -> Self {
-        let zbuffer = Surface::alloc(TextureFormat::Rgba16, display::get_width(), display::get_height());
+        let zbuffer = Surface::alloc(TexFormat::Rgba16, display::get_width(), display::get_height());
 
         let sprites = [
             Sprite::load(DfsPathBuf::from("rom:/circle0.sprite")).unwrap(),

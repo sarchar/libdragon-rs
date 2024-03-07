@@ -58,7 +58,7 @@ impl Sprite {
         unsafe { (*spr).vslices }
     }
 
-    pub fn get_format(&self) -> display::TextureFormat {
+    pub fn get_format(&self) -> surface::TexFormat {
         let spr = self.ptr as *const libdragon_sys::sprite_s;
         let f = unsafe { (*spr).__bindgen_anon_1.flags & (libdragon_sys::SPRITE_FLAGS_TEXFORMAT as u8) };
         (f as libdragon_sys::tex_format_t).into()
@@ -70,7 +70,7 @@ impl Sprite {
         }
     }
 
-    pub fn get_pixels(&self) -> display::Surface {
+    pub fn get_pixels(&self) -> surface::Surface {
         // initialize surface_t from libdragon
         let mut surface: core::mem::MaybeUninit<libdragon_sys::surface_t> = core::mem::MaybeUninit::uninit();
         unsafe {
@@ -80,7 +80,7 @@ impl Sprite {
         // pin the structure in place before getting memory address
         let mut backing_surface = Box::pin(unsafe { surface.assume_init() });
 
-        display::Surface {
+        surface::Surface {
             ptr: unsafe { 
                 core::mem::transmute(backing_surface.as_mut()) 
             },

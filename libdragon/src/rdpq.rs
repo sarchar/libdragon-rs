@@ -1,6 +1,6 @@
 use crate::*;
 
-use display::Surface;
+use surface::Surface;
 use sprite::Sprite;
 
 // rdpq_macros.h

@@ -1,6 +1,6 @@
 use crate::*;
 
-use display::Surface;
+use surface::Surface;
 use sprite::Sprite;
 
 pub fn make_color(r: i32, g: i32, b: i32, a: i32) -> u32 {
