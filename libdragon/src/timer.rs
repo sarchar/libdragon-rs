@@ -1,5 +1,7 @@
 use crate::*;
 
+/// Initialize timer subsystem
+///
 /// See [`timer_init`](libdragon-sys::timer_init)
 pub fn init() {
     unsafe {
@@ -7,6 +9,8 @@ pub fn init() {
     }
 }
 
+/// delete all timers in list
+///
 /// See [`timer_close`](libdragon-sys::timer_close)
 pub fn close() {
     unsafe {
@@ -14,6 +18,8 @@ pub fn close() {
     }
 }
 
+/// return total ticks since timer was initialized
+///
 /// See [`timer_ticks`](libdragon-sys::timer_ticks)
 pub fn ticks() -> u64 {
     unsafe {
@@ -79,15 +85,20 @@ extern "C" fn timer_callback(ovfl: ::core::ffi::c_int, ctx: *mut ::core::ffi::c_
     let _ = Box::leak(cb);
 }
 
+/// Wrapper structure around LibDragon's `timer_link_t`
+///
+/// See [`timer_link_t`](libdragon_sys::timer_link_t) for details.
 pub struct Timer {
     ptr: *mut libdragon_sys::timer_link_t,
     ctx: Option<*mut TimerCallback>,
 }
 
 impl Timer {
-    /// Create a new timer.  See [`timer_init`](libdragon_sys::new_timer) for details.
+    /// Create a new timer.
     ///
-    /// Dropping the returned Timer will call [`delete_timer`](libdragon_sys::delete_timer). 
+    /// Dropping the returned [Timer] will call [`delete_timer`](libdragon_sys::delete_timer). 
+    ///
+    /// See [`timer_init`](libdragon_sys::new_timer) for details.
     pub fn new(ticks: i32, mode: Mode, callback: Box<dyn Fn(i32) + 'static + Sync + Send>) -> Timer {
         let cb = Box::new(TimerCallback { user_callback: callback });
     
@@ -112,6 +123,8 @@ impl Timer {
         }
     }
 
+    /// start a timer not currently in the list
+    ///
     /// See [`start_timer`](libdragon-sys::start_timer)
     pub fn start(&mut self, ticks: i32, mode: Mode, callback: Box<dyn Fn(i32) + 'static + Sync + Send>) {
         // stop timer and free context
@@ -132,6 +145,8 @@ impl Timer {
         self.ctx = Some(ctx);
     }
 
+    /// reset a timer and add to list
+    ///
     /// See [`restart_timer`](libdragon-sys::restart_timer)
     pub fn restart(&mut self) {
         unsafe {
@@ -139,6 +154,8 @@ impl Timer {
         }
     }
 
+    /// remove a timer from the list
+    ///
     /// See [`stop_timer`](libdragon-sys::stop_timer)
     pub fn stop(&mut self) {
         unsafe {
@@ -148,6 +165,8 @@ impl Timer {
 }
 
 impl Drop for Timer {
+    /// remove a timer from the list and delete it
+    ///
     /// See [`delete_timer`](libdragon-sys::delete_timer)
     fn drop(&mut self) {
         unsafe {
