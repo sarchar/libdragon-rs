@@ -16,7 +16,7 @@ const CHANNEL_MUSIC: i32 = 2;
 #[no_mangle]
 extern "C" fn main() -> ! {
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
     joypad::init();
 
     display::init(Resolution::_512x240, BitDepth::Bpp16, 3, Gamma::None, FilterOptions::Resample);

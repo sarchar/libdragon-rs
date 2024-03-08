@@ -29,7 +29,7 @@ pub mod asset;
 pub mod audio;
 /// Console emulator
 pub mod console;
-/// Debug interface
+/// Debugging Support
 pub mod debug;
 /// Dragon Filesystem
 pub mod dfs;

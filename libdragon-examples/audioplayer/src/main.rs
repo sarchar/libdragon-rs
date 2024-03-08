@@ -13,7 +13,7 @@ use audio::ym64::Ym64;
 #[no_mangle]
 extern "C" fn main() -> ! {
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
     joypad::init();
 
     display::init(Resolution::_320x240, BitDepth::Bpp16, 2, Gamma::None, FilterOptions::Resample);

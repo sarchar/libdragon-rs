@@ -19,7 +19,7 @@ const TEXT: &str = "Two $02households$01, both alike in dignity,\n\
 #[no_mangle]
 extern "C" fn main() -> ! {
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
     joypad::init();
 
     // Initialize peripherals

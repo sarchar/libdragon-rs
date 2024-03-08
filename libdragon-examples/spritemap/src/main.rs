@@ -13,7 +13,7 @@ use libdragon::timer::Timer;
 
 #[no_mangle]
 extern "C" fn main() -> ! {
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
 
     display::init(Resolution::_320x240, BitDepth::Bpp16, 2, Gamma::None, FilterOptions::Resample);
     dfs::init(None).unwrap_or_else(|e| panic!("Could not initialize filesystem: {:?}", e));

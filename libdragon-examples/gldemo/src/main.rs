@@ -240,7 +240,7 @@ impl<'a> App<'a> {
 
 #[no_mangle]
 extern "C" fn main() -> ! {
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
 
     dfs::init(None).unwrap_or_else(|e| panic!("Could not initialize filesystem: {:?}", e));
 

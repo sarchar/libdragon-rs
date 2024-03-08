@@ -26,7 +26,7 @@ extern "C" fn main() -> ! {
     let mut bit = BitDepth::Bpp32;
 
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
 
     display::init(res, bit, 2, Gamma::None, FilterOptions::Resample);
     dfs::init(None).unwrap_or_else(|e| panic!("Could not initialize filesystem: {:?}", e));

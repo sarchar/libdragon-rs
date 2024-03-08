@@ -13,7 +13,7 @@ const HEIGHT: [i32; 6] = [240, 480, 240, 480, 240, 240];
 #[no_mangle]
 extern "C" fn main() -> ! {
     // enable ISViewer, so eprintln calls are displayed there
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
 
     display::init(Resolution::_320x240, BitDepth::Bpp32, 2, Gamma::None, FilterOptions::Resample);
 

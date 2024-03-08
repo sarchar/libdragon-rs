@@ -29,7 +29,7 @@ fn print_output(header: &str, dest: &mut [Vec4], source: &[VecSlot]) {
 extern "C" fn main() -> ! {
     console::init();
     console::set_debug(true);
-    debug::init_features(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
 
     let vec = vec::Vec::new();
 
