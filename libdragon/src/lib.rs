@@ -55,6 +55,8 @@ pub mod sprite;
 pub mod surface;
 /// System timer support
 pub mod timer;
+/// Throttling engine
+pub mod throttle;
 
 #[derive(Debug)]
 pub enum LibDragonError {
