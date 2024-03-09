@@ -71,6 +71,25 @@ impl From<core::str::Utf8Error> for LibDragonError {
 
 pub type Result<T> = core::result::Result<T, LibDragonError>;
 
+/// [Register] provides volatile access to a memory region
+///
+/// Use the [`read()`](Register::read) and [`write()`](Register::write) functions to read
+/// and write to a given memory address.
+pub struct Register<T> {
+    address: *mut T
+}
+
+impl<T> Register<T> {
+    pub fn write(&mut self, value: T) {
+        unsafe { core::ptr::write_volatile(self.address, value); }
+    }
+
+    pub fn read(&self) -> T {
+        unsafe { core::ptr::read_volatile(self.address) }
+    }
+}
+
+
 extern "C" {
     static _gp: ::core::ffi::c_int;
 
