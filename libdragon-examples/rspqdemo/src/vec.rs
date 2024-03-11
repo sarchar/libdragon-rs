@@ -4,7 +4,7 @@ use libdragon::*;
 use crate::Vec4;
 
 pub struct Vec {
-    rsp_vec: rspq::RspqUcode,
+    rsp_vec: rsp::RspUcode,
 }
 
 impl Vec {

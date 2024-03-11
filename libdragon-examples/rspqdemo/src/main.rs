@@ -26,10 +26,12 @@ fn print_output(header: &str, dest: &mut [Vec4], source: &[VecSlot]) {
 }
 
 #[no_mangle]
+#[named]
 extern "C" fn main() -> ! {
     console::init();
     console::set_debug(true);
     debug::init(debug::FEATURE_LOG_ISVIEWER | debug::FEATURE_LOG_USB);
+    joypad::init();
 
     let vec = vec::Vec::new();
 
@@ -125,7 +127,13 @@ extern "C" fn main() -> ! {
     drop(transform_vectors_block);
     drop(vec);
 
-    loop {};
+    loop {
+        joypad::poll();
+        let pressed = joypad::Port::get_port_1().get_buttons_pressed();
+        if pressed.start {
+            rsp_crash!("Reporting an RSP crash: {}", 1234);
+        }
+    };
 }
 
 #[derive(Debug)]

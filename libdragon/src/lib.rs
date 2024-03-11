@@ -17,6 +17,9 @@ pub use alloc::boxed::Box;
 pub use alloc::format;
 pub use alloc::sync::Arc;
 
+//#[macro_use] extern crate function_name;
+pub use function_name::named;
+
 #[doc(hidden)]
 pub use paste::paste;
 
@@ -47,6 +50,8 @@ pub mod joypad;
 pub mod rdp;
 /// RDPQ module
 pub mod rdpq;
+/// RSP low-level hardware library
+pub mod rsp;
 /// RSPQ module
 pub mod rspq;
 /// Sprites (2D renderable objects)
@@ -77,17 +82,45 @@ pub type Result<T> = core::result::Result<T, LibDragonError>;
 ///
 /// Use the [`read()`](Register::read) and [`write()`](Register::write) functions to read
 /// and write to a given memory address.
-pub struct Register<T> {
+pub struct Register<T: Copy, const SIZE: usize = 1> {
     address: *mut T
 }
 
-impl<T> Register<T> {
+impl<T: Copy, const SIZE: usize> Register<T, SIZE> {
+    /// Write a single piece of data `T` to the address specified by the register
     pub fn write(&mut self, value: T) {
         unsafe { core::ptr::write_volatile(self.address, value); }
     }
 
+    /// Write a slice of data of type `T` to the address specified by the register
+    ///
+    /// `offset` is in element counts, not bytes
+    pub fn write_slice(&mut self, data: &[T], offset: usize) {
+        assert!((offset + data.len()) <= SIZE, "overflow memory write");
+        unsafe {
+            for i in 0..data.len() {
+                let addr = (self.address as usize + (offset + i) * ::core::mem::size_of::<T>()) as *mut _;
+                core::ptr::write_volatile(addr, data[i]);
+            }
+        }
+    }
+
+    /// Read a single piece of data `T` from the address specified by the register
     pub fn read(&self) -> T {
         unsafe { core::ptr::read_volatile(self.address) }
+    }
+
+    /// Read an array of data of type `T` from the address specified by the register
+    pub fn read_slice(&self, len: usize, offset: usize) -> Vec<T> {
+        assert!((offset + len) <= SIZE, "overflow memory read");
+        let mut storage = Vec::with_capacity(len);
+        unsafe {
+            for i in 0..len {
+                let addr = (self.address as usize + (offset + i) * ::core::mem::size_of::<T>()) as *mut _;
+                storage[i] = core::ptr::read_volatile(addr);
+            }
+        }
+        storage
     }
 }
 

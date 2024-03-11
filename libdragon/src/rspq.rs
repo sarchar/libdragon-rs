@@ -55,46 +55,10 @@ impl Drop for RspqWrite {
 	}
 }
 
-#[derive(Debug,Clone)]
-pub struct RspqUcode {
-    pub rsp_ucode : core::pin::Pin<Box<RspUcodeT>>,
-    pub overlay_id: Option<u32>,
-}
+/// rspq overlays
 
-pub type RspUcodeT = libdragon_sys::rsp_ucode_t;
-
-#[macro_export]
-macro_rules! define_rsp_ucode {
-    ($sname:ident) => {
-        crate::paste! {
-            extern "C" {
-                static mut [<$sname _text_start>]: ::core::ffi::c_uchar;
-                static mut [<$sname _text_end>]: ::core::ffi::c_void;
-                static mut [<$sname _data_start>]: ::core::ffi::c_uchar;
-                static mut [<$sname _data_end>]: ::core::ffi::c_void;
-            }
-
-            let mut $sname: rspq::RspqUcode = rspq::RspqUcode {
-                rsp_ucode: Box::pin(rspq::RspUcodeT {
-                    code: unsafe { &mut [<$sname _text_start>] as *mut _ },
-                    code_end: unsafe { &mut [<$sname _text_end>] as *mut _ },
-                    data: unsafe { &mut [<$sname _data_start>] as *mut _ },
-                    data_end: unsafe { &mut [<$sname _data_end>] as *mut _ },
-
-                    name: 0 as *const _, //{ stringify!($sname) },
-
-                    start_pc: 0,
-                    crash_handler: None,
-                    assert_handler: None,
-                }),
-                overlay_id: None,
-            };
-
-        }
-    }
-}
-
-impl RspqUcode {
+/// Extend RspUcode with rspq support
+impl rsp::RspUcode {
     pub fn register(&mut self) -> Result<()> {
         let id = unsafe {
             libdragon_sys::rspq_overlay_register(self.rsp_ucode.as_mut().get_mut() as *mut libdragon_sys::rsp_ucode_t)

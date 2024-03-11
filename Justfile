@@ -28,6 +28,9 @@ build-release-toolchain:
 build-example EXAMPLE:
     cd "libdragon-examples/{{EXAMPLE}}" && just build
 
+build-example-release EXAMPLE:
+    cd "libdragon-examples/{{EXAMPLE}}" && just build-release
+
 build-examples:
     @for example in `ls libdragon-examples`; do \
         cd "libdragon-examples/$example" && just build; cd ../..;  \
