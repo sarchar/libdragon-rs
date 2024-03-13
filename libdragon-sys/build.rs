@@ -20,7 +20,7 @@ struct Cb;
 
 impl bindgen::callbacks::ParseCallbacks for Cb {
     fn process_comment(&self, comment: &str) -> Option<String> {
-        eprintln!("cmt: {:?}", comment);
+        //eprintln!("cmt: {:?}", comment);
         Some(doxygen_rs::transform(comment))
     }
 }
@@ -149,12 +149,17 @@ async fn main() -> Result<()> {
     println!("cargo:rustc-link-lib=static=gcc");
     println!("cargo:rustc-link-lib=static=m");
 
+    let static_fns_path = out_dir.clone().join("static_fns.c");
+
     let bindings = bindgen::Builder::default()
                         .clang_arg(format!("-I{}/mips64-libdragon-elf/include", toolchain_dir.display()))
                         .header("wrapper.h")
                         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
                         .parse_callbacks(Box::new(Cb {}))
                         .use_core()
+                        .generate_inline_functions(true)
+                        .wrap_static_fns_path(&static_fns_path)
+                        .wrap_static_fns(true)
                         .generate()
                         .expect("Unable to generate a binding");
 
@@ -162,6 +167,64 @@ async fn main() -> Result<()> {
     bindings.write_to_file(out_path.join("bindings.rs"))
             .expect("Couldn't write bindings!");
 
+    // Compile the static_fns file
+    // The compile arguments are taken from n64.mk, so they need to be kept in sync.
+    let static_fns_obj_path = out_dir.clone().join("static_fns.o");
+    let mut compile_fns = Command::new("clang");
+    compile_fns.arg("-target").arg("mips-nintendo64-none").arg("-mabi=n32")
+               .arg(format!("-ffile-prefix-map={}=", out_dir.clone().display()))
+               .arg("-DN64").arg("-Wall").arg("-std=gnu99")
+               .arg("-O2")
+               //.arg("-flto=thin") // TODO: thin LTO
+               .arg("-c")
+               .arg("-o")
+               .arg(&static_fns_obj_path)
+               .arg(static_fns_path)
+               .arg("-I")
+               .arg(src_dir.clone())
+               .arg("-I")
+               .arg(toolchain_dir.clone().join("include"))
+               .arg("-I")
+               .arg(toolchain_dir.clone().join("mips64-libdragon-elf").join("include"));
+    // With gcc...
+    //let static_fns_obj_path = out_dir.clone().join("static_fns.o");
+    //let mut compile_fns = Command::new(toolchain_dir.clone().join("bin").join("mips64-libdragon-elf-gcc"));
+    //compile_fns.arg("-march=vr4300").arg("-mtune=vr4300")
+    //           .arg("-mabi=n32").arg("-mno-abicalls").arg("-G").arg("0").arg("-mno-gpopt")
+    //           .arg("-falign-functions=32")
+    //           .arg("-ffunction-sections").arg("-fdata-sections").arg("-g")
+    //           .arg(format!("-ffile-prefix-map={}=", out_dir.clone().display()))
+    //           .arg("-DN64").arg("-Wall").arg("-std=gnu99")
+    //           .arg("-O2")
+    //           .arg("-flto=n")
+    //           .arg("-c")
+    //           .arg("-o")
+    //           .arg(&static_fns_obj_path)
+    //           .arg(static_fns_path)
+    //           .arg("-I")
+    //           .arg(src_dir.clone())
+    //           .arg("-I")
+    //           .arg(toolchain_dir.clone().join("include"))
+    //           .arg("-I")
+    //           .arg(toolchain_dir.clone().join("mips64-libdragon-elf").join("include"));
+
+    eprintln!("compile: {:?}", compile_fns);
+    if compile_fns.execute_check_exit_status_code(0).is_err() {
+        eprintln!("Could not compile static_fns.c");
+        exit(1);
+    }
+    
+    // Add the static_fns.o object to an archive
+    let mut add_archive = Command::new(toolchain_dir.clone().join("bin").join("mips64-libdragon-elf-ar"));
+    add_archive.arg("-crus").arg(toolchain_dir.clone().join("mips64-libdragon-elf").join("lib").join("libextern.a")).arg(static_fns_obj_path);
+    if add_archive.execute_check_exit_status_code(0).is_err() {
+        eprintln!("Could not add static_fns.o to libdragon.a");
+        exit(1);
+    }
+
+    // And link to the archive
+    println!("cargo:rustc-link-lib=static=extern");
+ 
     // set vars for parent crates
     println!("cargo:n64_inst={}", toolchain_dir.display());
     println!("cargo:n64_includedir={}/mips64-libdragon-elf/inlude", toolchain_dir.display());

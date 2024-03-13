@@ -11,7 +11,7 @@ build = "build.rs"
 rust-version.workspace = true
 
 [build-dependencies]
-bindgen = "0.69"
+bindgen = { version = "0.69", features = ["experimental"] }
 execute = "0.2"
 filetime = "0.2"
 reqwest = "0.11"

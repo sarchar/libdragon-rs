@@ -20,11 +20,11 @@ extern "C" {
 }
 
 #[derive(Debug)]
-pub struct RspqWrite {
+pub struct Writer {
     w: Option<libdragon_sys::rspq_write_t>,
 }
 
-impl RspqWrite {
+impl Writer {
     pub fn begin(ovl_id: u32, cmd_id: u32, size: usize) -> Self {
         let mut data: core::mem::MaybeUninit<libdragon_sys::rspq_write_t> = core::mem::MaybeUninit::uninit();
         unsafe {
@@ -35,10 +35,11 @@ impl RspqWrite {
         }
     }
 
-    pub fn arg(&mut self, value: u32) {
+    pub fn arg(&mut self, value: u32) -> &Self {
         unsafe {
             rspq_write_arg_r(self.w.as_mut().unwrap() as *mut _, value);
         }
+        self
     }
 
     pub fn end(&mut self) {
@@ -49,9 +50,9 @@ impl RspqWrite {
     }
 }
 
-impl Drop for RspqWrite {
+impl Drop for Writer {
 	fn drop(&mut self) {
-        assert!(self.w.is_none(), "forgot to call RspqWrite::end()?");
+        assert!(self.w.is_none(), "forgot to call Writer::end()?");
 	}
 }
 

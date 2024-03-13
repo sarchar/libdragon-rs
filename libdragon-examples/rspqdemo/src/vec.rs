@@ -39,7 +39,7 @@ impl Vec {
         let arg = (((((src.len() * core::mem::size_of::<VecSlot>()) - 1) & 0xFFF) as u32) << 16)
                   | (((slot * core::mem::size_of::<VecSlot>()) & 0xFF0) as u32);
 
-        let mut w = rspq::RspqWrite::begin(self.rsp_vec.id().unwrap(), Vec::CMD_LOAD, 2);
+        let mut w = rspq::Writer::begin(self.rsp_vec.id().unwrap(), Vec::CMD_LOAD, 2);
         w.arg(phys_addr);
         w.arg(arg);
         w.end();
@@ -50,7 +50,7 @@ impl Vec {
         let arg = (((((dest.len() * core::mem::size_of::<VecSlot>()) - 1) & 0xFFF) as u32) << 16)
                   | (((slot * core::mem::size_of::<VecSlot>()) & 0xFF0) as u32);
 
-        let mut w = rspq::RspqWrite::begin(self.rsp_vec.id().unwrap(), Vec::CMD_STORE, 2);
+        let mut w = rspq::Writer::begin(self.rsp_vec.id().unwrap(), Vec::CMD_STORE, 2);
         w.arg(phys_addr);
         w.arg(arg);
         w.end();
@@ -61,7 +61,7 @@ impl Vec {
         let arg = ((((mtx * core::mem::size_of::<VecSlot>()) & 0xFF0) as u32) << 16)
                    | (((vec * core::mem::size_of::<VecSlot>()) & 0xFF0) as u32);
         
-        let mut w = rspq::RspqWrite::begin(self.rsp_vec.id().unwrap(), Vec::CMD_TRANS, 2);
+        let mut w = rspq::Writer::begin(self.rsp_vec.id().unwrap(), Vec::CMD_TRANS, 2);
         w.arg(dest);
         w.arg(arg);
         w.end();
