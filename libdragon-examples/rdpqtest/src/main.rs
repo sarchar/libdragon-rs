@@ -129,7 +129,7 @@ impl App {
 
     fn render(&self) {
         let disp = display::get();
-        rdpq::attach_clear(Some(&disp), None);
+        rdpq::attach_clear(&disp, None);
 
         // Draw the tile background, by playing back the compiled block.
         // This is using copy mode by default, but notice how it can switch

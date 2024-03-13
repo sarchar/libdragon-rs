@@ -106,6 +106,7 @@ pub struct Surface<'a> {
     pub(crate) ptr: *mut libdragon_sys::surface_t,
     pub(crate) _backing_instance: Option<core::pin::Pin<Box<libdragon_sys::surface_t>>>,
     pub(crate) needs_free: bool,
+    pub(crate) is_const: bool,
     pub(crate) phantom: core::marker::PhantomData<&'a u8>,
 }
 
@@ -115,6 +116,18 @@ impl<'a> Surface<'a> {
             ptr: ptr,
             _backing_instance: None,
             needs_free: false,
+            is_const: false,
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    // For LibDragon functions that return a reference to constant surfaces
+    pub(crate) fn from_const_ptr(ptr: *const libdragon_sys::surface_t) -> Self {
+        Self {
+            ptr: ptr as *mut libdragon_sys::surface_t,
+            _backing_instance: None,
+            needs_free: false,
+            is_const: true,
             phantom: core::marker::PhantomData,
         }
     }
@@ -143,6 +156,7 @@ impl<'a> Surface<'a> {
             ptr: backing_instance.as_mut().get_mut(),
             _backing_instance: Some(backing_instance),
             needs_free: false,
+            is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -175,6 +189,7 @@ impl<'a> Surface<'a> {
             ptr: backing_surface.as_mut().get_mut(),
             _backing_instance: Some(backing_surface),
             needs_free: false,
+            is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -202,6 +217,7 @@ impl<'a> Surface<'a> {
             ptr: backing_surface.as_mut().get_mut(),
             _backing_instance: Some(backing_surface),
             needs_free: true,
+            is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -224,6 +240,7 @@ impl<'a> Surface<'a> {
             ptr: backing_instance.as_mut().get_mut(),
             _backing_instance: Some(backing_instance),
             needs_free: false,
+            is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -262,7 +279,9 @@ impl<'a> Surface<'a> {
     /// Access [`surface_t.stride`](libdragon_sys::surface_t::stride)
     pub fn stride(&self) -> u16 { unsafe { (*self.ptr).stride } }
     /// Unsafe access to [`surface_t.buffer`](libdragon_sys::surface_t::buffer)
-    pub unsafe fn buffer<T>(&self) -> *mut T { unsafe { (*self.ptr).buffer as *mut _ } }
+    pub unsafe fn buffer_mut<T>(&mut self) -> *mut T { assert!(!self.is_const, "immutable const surface"); unsafe { (*self.ptr).buffer as *mut _ } }
+    /// Unsafe access to [`surface_t.buffer`](libdragon_sys::surface_t::buffer)
+    pub unsafe fn buffer<T>(&self) -> *const T { unsafe { (*self.ptr).buffer as *const _ } }
 
     /// Display a buffer on the screen
     ///

@@ -84,6 +84,7 @@ impl Sprite {
             ptr: backing_instance.as_mut().get_mut(),
             _backing_instance: Some(backing_instance),
             needs_free: false,
+            is_const: false,
             phantom: core::marker::PhantomData,
         }
     }

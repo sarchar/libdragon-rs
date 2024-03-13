@@ -190,7 +190,7 @@ impl<'a> App<'a> {
 
     fn render(&mut self) {
         let disp = display::get();
-        rdpq::attach(Some(&disp), Some(&self.zbuffer));
+        rdpq::attach(&disp, Some(&self.zbuffer));
 
         gl::context_begin();
 

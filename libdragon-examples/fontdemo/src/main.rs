@@ -59,7 +59,7 @@ extern "C" fn main() -> ! {
         box_width = core::cmp::max(1, box_width);
 
         let disp = display::get();
-        rdpq::attach_clear(Some(&disp), None);
+        rdpq::attach_clear(&disp, None);
         rdpq::set_mode_fill(graphics::rgba32(0x30, 0x63, 0x38, 0xFF));
         rdpq::fill_rectangle((320-box_width)/2, (240-box_height)/2, (320+box_width)/2, (240+box_height)/2);
         let _nbytes = rdpq::text_print(rdpq::TextParms {

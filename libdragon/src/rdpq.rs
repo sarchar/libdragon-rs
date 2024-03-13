@@ -716,6 +716,96 @@ pub fn write(num_rdp_commands: Option<usize>, ovl_id: u32, cmd_id: u32, args: Ve
     writer.end();
 }
 
+// rdpq_attach.h
+
+/// Attach the RDP to a color surface (and optionally a Z buffer)
+///
+/// See [`rdpq_attach`][(libdragon_sys::rdpq_attach) for details.
+pub fn attach(surf_color: &Surface, surf_depth: Option<&Surface>) {
+    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
+    unsafe {
+        libdragon_sys::rdpq_attach_clear(surf_color.ptr, surf_depth.unwrap_or(&depth_null_surface).ptr);
+    }
+}
+
+/// Attach the RDP to a surface and clear it
+///
+/// See [`rdpq_attach_clear`](libdragon_sys::rdpq_attach_clear) for details.
+pub fn attach_clear(surf_color: &Surface, surf_depth: Option<&Surface>) {
+    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
+    unsafe {
+        libdragon_sys::rdpq_attach_clear(surf_color.ptr, 
+                                         surf_depth.unwrap_or(&depth_null_surface).ptr);
+    }
+}
+
+/// Clear the current render target with the specified color.
+///
+/// See [`rdpq_clear`](libdragon_sys::rdpq_clear) for details.
+#[inline]
+pub fn clear(color: graphics::Color) {
+    extern "C" { fn __rdpq_clear(color: *const libdragon_sys::color_t); }
+    unsafe { __rdpq_clear(&color.c); }
+}
+
+/// Clear the current Z buffer to the given value.
+///
+/// See [`rdpq_clear_z`](libdragon_sys::rdpq_clear_z) for details.
+#[inline]
+pub fn clear_z(z: u16) {
+    extern "C" { fn __rdpq_clear_z(z: *const ::core::ffi::c_ushort); }
+    unsafe { __rdpq_clear_z(&z); }
+}
+
+/// Detach the RDP from the current surface, and restore the previous one
+///
+/// See [`rdpq_detach`](libdragon_sys::rdpq_detach) for details.
+#[inline]
+pub fn detach() { unsafe { libdragon_sys::rdpq_detach_cb(None, ::core::ptr::null_mut()); } }
+
+/// Check if the RDP is currently attached to a surface
+///
+/// See [`rdpq_is_attached`](libdragon_sys::rdpq_is_attached) for details.
+pub fn is_attached() -> bool { unsafe { libdragon_sys::rdpq_is_attached() } }
+
+/// Detach the RDP from the current framebuffer, and show it on screen
+///
+/// See [`rdpq_detach_show`](libdragon_sys::rdpq_detach_show) for details.
+pub fn detach_show() { unsafe { libdragon_sys::rdpq_detach_show(); } }
+
+/// Detach the RDP from the current surface, waiting for RDP to finish drawing.
+///
+/// See [`rdpq_detach_wait`](libdragon_sys::rdpq_detach_wait) for details.
+#[inline]
+pub fn detach_wait() {
+    detach();
+    rspq::wait();
+}
+
+/// Detach the RDP from the current surface, and call a callback when
+/// the RDP has finished drawing to it.
+///
+/// See [`rdpq_detach_cb`](libdragon_sys::rdpq_detach_cb) for details.
+pub fn detach_cb(cb: RdpqSimpleCallback) {
+    let cb = Box::new(RdpqCallbackInternal { user_callback: cb });
+    unsafe {
+        let ctx: *mut RdpqCallbackInternal = Box::leak(cb); // Leak the function callback to prevent
+                                                        // memory from being freed
+        libdragon_sys::rdpq_detach_cb(Some(rdpq_simple_callback), ctx as *mut ::core::ffi::c_void);
+    }
+}
+
+/// Get the surface that is currently attached to the RDP
+///
+/// See [`rdpq_get_attached`](libdragon_sys::rdpq_get_attached) for details.
+pub fn get_attached<'a>() -> Surface<'a> {
+    let ptr = unsafe {
+        libdragon_sys::rdpq_get_attached()
+    };
+    surface::Surface::from_const_ptr(ptr)
+}
+
+// rdpq_debug.h
 pub fn debug_log_msg(msg: &str) {
     let cmsg = CString::new(msg).unwrap();
     unsafe {
@@ -723,45 +813,6 @@ pub fn debug_log_msg(msg: &str) {
     }
 }
 
-// rdpq_attach.h
-pub fn attach(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface::from_ptr(::core::ptr::null_mut());
-    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
-    unsafe {
-        libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
-                                         surf_depth.unwrap_or(&depth_null_surface).ptr);
-    }
-}
-
-pub fn attach_clear(surf_color: Option<&Surface>, surf_depth: Option<&Surface>) {
-    let color_null_surface = Surface::from_ptr(::core::ptr::null_mut());
-    let depth_null_surface = Surface::from_ptr(::core::ptr::null_mut());
-    unsafe {
-        libdragon_sys::rdpq_attach_clear(surf_color.unwrap_or(&color_null_surface).ptr, 
-                                         surf_depth.unwrap_or(&depth_null_surface).ptr);
-    }
-}
-
-pub fn detach() {
-    extern "C" {
-        fn rdpq_detach_cb(cb: Option<unsafe extern "C" fn(arg: *mut core::ffi::c_void)>, arg: *mut ::core::ffi::c_void);
-    }
-    unsafe {
-        rdpq_detach_cb(None, ::core::ptr::null_mut());
-    }
-}
-
-pub fn detach_show() {
-    unsafe {
-        libdragon_sys::rdpq_detach_show();
-    }
-}
-
-#[inline]
-pub fn detach_wait() {
-    detach();
-    rspq::wait();
-}
 
 // rdpq_mode.h
 #[derive(Copy, Clone)]

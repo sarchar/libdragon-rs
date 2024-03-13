@@ -53,7 +53,7 @@ extern "C" fn main() -> ! {
                 let disp = g.finish();
 
                 rdpq::set_mode_copy(true);
-                rdpq::attach(Some(&disp), None);
+                rdpq::attach(&disp, None);
                 
                 rdp::load_texture(0, 0, rdp::Mirror::Disabled, &plane);
                 rdp::draw_sprite(0, 20, 50, rdp::Mirror::Disabled);
