@@ -4,6 +4,7 @@
 
 #include <libdragon.h>
 #include <rspq_profile.h>
+#include <rdpq_constants.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/gl_integration.h>

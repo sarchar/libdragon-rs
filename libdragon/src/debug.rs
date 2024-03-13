@@ -2,10 +2,25 @@
 
 use crate::*;
 
+/// Flag to activate the USB logging channel.
+///
+/// See [libdragon_sys::DEBUG_FEATURE_LOG_USB] for details.
 pub const FEATURE_LOG_USB     : u32 = libdragon_sys::DEBUG_FEATURE_LOG_USB as u32;
+/// Flag to activate the ISViewer logging channel.
+///
+/// See [libdragon_sys::DEBUG_FEATURE_LOG_ISVIEWER] for details.
 pub const FEATURE_LOG_ISVIEWER: u32 = libdragon_sys::DEBUG_FEATURE_LOG_ISVIEWER as u32;
+/// Flag to activate the logging on CompactFlash/SD card
+///
+/// See [libdragon_sys::DEBUG_FEATURE_LOG_SD] for details.
 pub const FEATURE_LOG_SD      : u32 = libdragon_sys::DEBUG_FEATURE_LOG_SD as u32;
+/// Flag to activate filesystem access to files on CompactFlash/SD.
+///
+/// See [libdragon_sys::DEBUG_FEATURE_FILE_SD] for details.
 pub const FEATURE_FILE_SD     : u32 = libdragon_sys::DEBUG_FEATURE_FILE_SD as u32;
+/// Flag to activate all supported debugging features
+///
+/// See [libdragon_sys::DEBUG_FEATURE_ALL] for details.
 pub const FEATURE_ALL         : u32 = libdragon_sys::DEBUG_FEATURE_ALL as u32;
 
 /// Initialize USB logging.
@@ -39,7 +54,7 @@ pub fn init_sdfs(prefix: &str, npart: i32) -> bool {
     }
 }
 
-// Shutdown SD filesystem.
+/// Shutdown SD filesystem.
 pub fn close_sdfs() {
     unsafe {
         libdragon_sys::debug_close_sdfs();

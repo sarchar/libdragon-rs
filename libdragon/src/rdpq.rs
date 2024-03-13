@@ -362,12 +362,6 @@ pub fn set_tile(tile: Tile, format: surface::TexFormat, tmem_addr: i32, tmem_pit
 #[inline]
 pub fn set_tile_autotmem(tmem_bytes: i16) { unsafe { libdragon_sys::rdpq_set_tile_autotmem(tmem_bytes); } }
 
-pub fn debug_start() {
-    unsafe {
-        libdragon_sys::rdpq_debug_start();
-    }
-}
-
 /// Enqueue a SET_FILL_COLOR RDP command.
 ///
 /// See [`rdpq_set_fill_color`](libdragon_sys::rdpq_set_fill_color) for details.
@@ -805,7 +799,52 @@ pub fn get_attached<'a>() -> Surface<'a> {
     surface::Surface::from_const_ptr(ptr)
 }
 
+// rdpq_constants.h
+
+pub const ADDRESS_TABLE_SIZE: u32 = libdragon_sys::RDPQ_ADDRESS_TABLE_SIZE as u32;
+
+pub const DYNAMIC_BUFFER_SIZE: u32 = libdragon_sys::RDPQ_DYNAMIC_BUFFER_SIZE as u32;
+
+/// Asserted if `rdpq_mode_blender` was called in fill/copy mode
+pub const ASSERT_FILLCOPY_BLENDING: u32 = libdragon_sys::RDPQ_ASSERT_FILLCOPY_BLENDING as u32;
+/// Asserted if a 2-pass combiner is set with `rdpq_mode_combiner] while mipmap is enabled.
+pub const ASSERT_MIPMAP_COMB2: u32 = libdragon_sys::RDPQ_ASSERT_MIPMAP_COMB2 as u32;
+/// Asserted if RDPQCmd_Triangle is called with `RDPQ_TRIANGLE_REFERENCE == 0`
+pub const ASSERT_INVALID_CMD_TRI: u32 = libdragon_sys::RDPQ_ASSERT_INVALID_CMD_TRI as u32;
+/// Asserted if RDPQ_Send is called with invalid parameters (begin > end)
+pub const ASSERT_SEND_INVALID_SIZE: u32 = libdragon_sys::RDPQ_ASSERT_SEND_INVALID_SIZE as u32;
+/// Asserted if the TMEM is full during an auto-TMEM operation
+pub const ASSERT_AUTOTMEM_FULL: u32 = libdragon_sys::RDPQ_ASSERT_AUTOTMEM_FULL as u32;
+/// Asserted if the TMEM is full during an auto-TMEM operation
+pub const ASSERT_AUTOTMEM_UNPAIRED: u32 = libdragon_sys::RDPQ_ASSERT_AUTOTMEM_UNPAIRED as u32;
+
+pub const MAX_COMMAND_SIZE: u32 = libdragon_sys::RDPQ_MAX_COMMAND_SIZE as u32;
+/// RDPQ block minimum size (in 32-bit words)
+pub const BLOCK_MIN_SIZE: u32 = libdragon_sys::RDPQ_BLOCK_MIN_SIZE as u32;
+/// RDPQ block minimum size (in 32-bit words)
+pub const BLOCK_MAX_SIZE: u32 = libdragon_sys::RDPQ_BLOCK_MAX_SIZE as u32;
+
+/// Whether or not the reference implementation is enabled
+pub const TRIANGLE_REFERENCE: u32 = libdragon_sys::RDPQ_TRIANGLE_REFERENCE as u32;
+
 // rdpq_debug.h
+
+/// Initialize the RDPQ debugging engine.
+///
+/// See [`rdpq_debug_start`](libdragon_sys::rdpq_debug_start) for details.
+pub fn debug_start() { unsafe { libdragon_sys::rdpq_debug_start(); } }
+
+/// Stop the rdpq debugging engine.
+pub fn debug_stop() { unsafe { libdragon_sys::rdpq_debug_stop(); } }
+
+/// Show a full log of all the RDP commands
+///
+/// See [`rdpq_debug_log`](libdragon_sys::rdpq_debug_log) for details.
+pub fn debug_log(show_log: bool) { unsafe { libdragon_sys::rdpq_debug_log(show_log); } }
+
+/// Add a custom message in the RDP logging
+///
+/// See [`rdpq_debug_log_msg`](libdragon_sys::rdpq_debug_log_msg) for details.
 pub fn debug_log_msg(msg: &str) {
     let cmsg = CString::new(msg).unwrap();
     unsafe {
@@ -813,6 +852,82 @@ pub fn debug_log_msg(msg: &str) {
     }
 }
 
+/// Acquiare a dump of the current contents of TMEM
+///
+/// See [`rdpq_debug_get_tmem`](libdragon_sys::rdpq_debug_get_tmem) for details.
+pub fn debug_get_tmem<'a>() -> surface::Surface<'a> {
+    // initialize surface_t from libdragon
+    let mut surface: core::mem::MaybeUninit<libdragon_sys::surface_t> = core::mem::MaybeUninit::uninit();
+    extern "C" {
+        fn rdpq_debug_get_tmem_r(s: *mut libdragon_sys::surface_t);
+    }
+    unsafe {
+        rdpq_debug_get_tmem_r(surface.as_mut_ptr());
+    }
+
+    // pin the structure in place before getting memory address
+    let mut backing_instance = Box::pin(unsafe { surface.assume_init() });
+
+    // create a backed surface that will be freed
+    surface::Surface {
+        ptr: backing_instance.as_mut().get_mut(),
+        _backing_instance: Some(backing_instance),
+        needs_free: true,
+        is_const: false,
+        phantom: core::marker::PhantomData,
+    }
+}
+
+/// Install a custom hook that will be called every time a RDP command is processed.
+///
+/// See [`rdpq_debug_install_hook`](libdragon_sys::rdpq_debug_install_hook) for details.
+pub fn debug_install_hook(cb: RdpqCommandHookCallback) {
+    let cb = Box::new(RdpqCommandHookInternal { user_callback: cb });
+    unsafe {
+        let ctx: *mut RdpqCommandHookInternal = Box::leak(cb);
+        libdragon_sys::rdpq_debug_install_hook(Some(debug_hook_callback), ctx as *mut _);
+    }
+}
+
+type RdpqCommandHookCallback = Box<dyn FnMut(&[u64]) + 'static + Sync + Send>;
+struct RdpqCommandHookInternal {
+    user_callback: RdpqCommandHookCallback,
+}
+
+extern "C" fn debug_hook_callback(ctx: *mut ::core::ffi::c_void, cmd: *mut ::core::ffi::c_ulonglong, cmd_size: ::core::ffi::c_int) {
+    let slice: &[u64] = unsafe {
+        // TODO is cmd_size in u64's or bytes?
+        core::slice::from_raw_parts(cmd, cmd_size as usize)
+    };
+
+    let mut cb = unsafe {
+        let ctx: *mut RdpqCommandHookInternal = ctx as *mut RdpqCommandHookInternal;
+        Box::from_raw(ctx)
+    };
+
+    (cb.user_callback)(slice);
+
+    // leak the pointer again for future calls
+    let _ = Box::leak(cb);
+}
+
+/// Disassemble a RDP command
+///
+/// See [`rdpq_debug_disasm`](libdragon_sys::rdpq_debug_disasm) for details.
+pub fn debug_disasm(buf: &mut [u64], out: &mut dfs::File) -> bool {
+    unsafe {
+        libdragon_sys::rdpq_debug_disasm(buf.as_mut_ptr(), out.fp.unwrap())
+    }
+}
+
+/// Return the size of the next RDP commands
+///
+/// See [`rdpq_debug_disasm_size`](libdragon_sys::rdpq_debug_disasm_size) for details.
+pub fn debug_disasm_size(buf: &mut [u64]) -> usize {
+    unsafe {
+        libdragon_sys::rdpq_debug_disasm_size(buf.as_mut_ptr()) as usize
+    }
+}
 
 // rdpq_mode.h
 #[derive(Copy, Clone)]
