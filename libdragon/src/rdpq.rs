@@ -3,25 +3,6 @@ use crate::*;
 use surface::Surface;
 use sprite::Sprite;
 
-// rdpq_macros.h
-pub const SOM_SAMPLE_SHIFT   : u32 = libdragon_sys::SOM_SAMPLE_SHIFT;
-pub const SOM_SAMPLE_POINT   : u64 = 0u64 << SOM_SAMPLE_SHIFT;
-pub const SOM_SAMPLE_BILINEAR: u64 = 2u64 << SOM_SAMPLE_SHIFT;
-pub const SOM_SAMPLE_MEDIAN  : u64 = 3u64 << SOM_SAMPLE_SHIFT;
-pub const SOM_SAMPLE_MASK    : u64 = 3u64 << SOM_SAMPLE_SHIFT;
-
-pub const SOM_ALPHACOMPARE_SHIFT    : u32 = libdragon_sys::SOM_ALPHACOMPARE_SHIFT;
-pub const SOM_ALPHACOMPARE_NONE     : u64 = 0u64 << SOM_ALPHACOMPARE_SHIFT;
-pub const SOM_ALPHACOMPARE_THRESHOLD: u64 = 1u64 << SOM_ALPHACOMPARE_SHIFT;
-pub const SOM_ALPHACOMPARE_NOISE    : u64 = 3u64 << SOM_ALPHACOMPARE_SHIFT;
-pub const SOM_ALPHACOMPARE_MASK     : u64 = 3u64 << SOM_ALPHACOMPARE_SHIFT;
-
-pub const SOM_TLUT_SHIFT         : u32 = libdragon_sys::SOM_TLUT_SHIFT;
-pub const SOM_TLUT_NONE          : u64 = 0u64 << SOM_TLUT_SHIFT;
-pub const SOM_TLUT_RGBA16        : u64 = 2u64 << SOM_TLUT_SHIFT;
-pub const SOM_TLUT_IA16          : u64 = 3u64 << SOM_TLUT_SHIFT;
-pub const SOM_TLUT_MASK          : u64 = 3u64 << SOM_TLUT_SHIFT;
-
 // rdpq.h
 pub const OVL_ID: u32 = libdragon_sys::RDPQ_OVL_ID;
 
@@ -929,6 +910,911 @@ pub fn debug_disasm_size(buf: &mut [u64]) -> usize {
     }
 }
 
+// rdpq_font.h
+
+/// Wrapper around [`rdpq_font_t`](libdragon_sys::rdpq_font_s)
+pub struct Font<'a> {
+    pub(crate) ptr: *mut libdragon_sys::rdpq_font_t,
+    pub(crate) phantom: core::marker::PhantomData<&'a u8>,
+}
+
+impl<'a> Font<'a> {
+    /// Load a font from a file (.font64 format).
+    ///
+    /// Rust-specific: the LibDragon [`rdpq_font_t`](libdragon-sys::rdpq_font_t) is freed when this object is dropped
+    ///
+    /// See [`rdpq_font_load`](libdragon-sys::rdpq_font_load) for details.
+    pub fn load(filename: &str) -> Self {
+        let cfilename = CString::new(filename).unwrap();
+        let ptr = unsafe {
+            libdragon_sys::rdpq_font_load(cfilename.as_ptr())
+        };
+        Self {
+            ptr: ptr,
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Load a font from a buffer in memory (.font64 format)
+    ///
+    /// The buffer provided must outlive the returned [Font]
+    ///
+    /// See [`rdpq_font_load_buf`](libdragon_sys::rdpq_font_load_buf)
+    pub fn load_buf<'b, T>(buf: &'b mut [T]) -> Font<'b> {
+        let sz = buf.len() * ::core::mem::size_of::<T>();
+        let ptr = unsafe {
+            libdragon_sys::rdpq_font_load_buf(buf.as_mut_ptr() as *mut _, sz as i32)
+        };
+        Font {
+            ptr: ptr,
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Create a style for a font
+    ///
+    /// See [`rdpq_font_style`](libdragon_sys::rdpq_font_style) for details.
+    pub fn style(&mut self, id: u8, style: FontStyle) {
+        unsafe {
+            libdragon_sys::rdpq_font_style(self.ptr, id, &Into::<libdragon_sys::rdpq_fontstyle_t>::into(style) as *const libdragon_sys::rdpq_fontstyle_t)
+        }
+    }
+
+    /// Render a certain number of chars from a paragraph.
+    ///
+    /// Crash warning: you must terminate the `chars` array with a [ParagraphChar] that
+    /// has a different `font_id` than the previous element.
+    ///
+    /// See [`rdpq_font_render_paragraph`](libdragon_sys::rdpq_font_render_paragraph) for details.
+    pub fn render_paragraph(&self, chars: &[ParagraphChar], x0: f32, y0: f32) -> usize {
+        // must have at least two elements
+        if chars.len() < 2 { return 0; }
+
+        // TODO in debug builds we could scan the elements to check the font_ids.
+
+        unsafe {
+            let chars_ptr = chars.as_ptr() as *const _;
+            libdragon_sys::rdpq_font_render_paragraph(self.ptr as *const _, chars_ptr, x0, y0) as usize
+        }
+    }
+}
+
+impl<'a> Drop for Font<'a> {
+    /// Free a font
+    ///
+    /// Rust-specific: this call happens for you, don't worry about it.
+    ///
+    /// See [`rdpq_font_free`](libdragon_sys::rdpq_font_free) for details.
+    fn drop(&mut self) {
+        unsafe {
+            libdragon_sys::rdpq_font_free(self.ptr);
+        }
+    }
+}
+
+/// Wrapper around [`rdpq_fontstyle_t`](libdragon_sys::rdpq_fontstyle_t).
+///
+/// Initialize the structure manually.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct FontStyle {
+    pub color: graphics::Color,
+}
+
+impl Into<libdragon_sys::rdpq_fontstyle_t> for FontStyle {
+    fn into(self) -> libdragon_sys::rdpq_fontstyle_t {
+        unsafe {
+            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_fontstyle_t>(&self)
+        }
+    }
+}
+
+// rdpq_macros.h
+pub mod consts {
+    //! module contains many of the defines from rdpq_macros.h and other various files.
+    use crate::combiner1;
+    use paste::paste;
+    use crate::rdpq::Combiner;
+
+    /// SET_OTHER_MODES bit constants. See rdpq_macros.h in LibDragon.
+    ///
+    /// Flag to mark the combiner as required two passes
+    pub const COMBINER_2PASS: u64 = 1u64 <<63;
+    /// Combiner: mask to isolate settings related to cycle 0
+    pub const COMB0_MASK: u64 = (0xFu64<<52)|(0x1Fu64<<47)|(0x7u64<<44)|(0x7u64<<41)|(0xFu64<<28)|(0x7u64<<15)|(0x7u64<<12)|(0x7u64<<9);
+    /// Combiner: mask to isolate settings related to cycle 1
+    pub const COMB1_MASK: u64 = !COMB0_MASK & 0x00FFFFFFFFFFFFFFu64;
+
+    /// Some standard color combiners
+    ///
+    /// Draw a flat color.
+    pub const COMBINER_FLAT: Combiner = crate::combiner1!((0 - 0) * 0 + PRIM, (0 - 0) * 0 + PRIM);
+    /// Draw an interpolated color.
+    pub const COMBINER_SHADE: Combiner = crate::combiner1!((0 - 0) * 0 + SHADE, (0 - 0) * 0 + SHADE);
+    /// Draw with a texture.
+    pub const COMBINER_TEX: Combiner = crate::combiner1!((0 - 0) * 0 + TEX0, (0 - 0) * 0 + TEX0);
+    /// Draw with a texture modulated with a flat color.
+    pub const COMBINER_TEX_FLAT: Combiner = crate::combiner1!((TEX0 - 0) * PRIM + 0, (TEX0 - 0) * PRIM + 0);
+    /// Draw with a texture modulated with an interpolated color.
+    pub const COMBINER_TEX_SHADE: Combiner = crate::combiner1!((TEX0 - 0) * SHADE + 0, (TEX0 - 0) * SHADE + 0);
+
+    /// Rdpq extension: number of LODs
+    pub const SOMX_NUMLODS_MASK: u64 = 7u64 << 59;            
+    /// Rdpq extension: number of LODs shift
+    pub const SOMX_NUMLODS_SHIFT: u64 = 59;
+    
+    /// Atomic: serialize command execution 
+    pub const SOM_ATOMIC_PRIM: u64 = 1u64 << 55;            
+    
+    /// Set cycle-type: 1cyc
+    pub const SOM_CYCLE_1: u64 = 0u64 << 52;            
+    /// Set cycle-type: 2cyc
+    pub const SOM_CYCLE_2: u64 = 1u64 << 52;            
+    /// Set cycle-type: copy
+    pub const SOM_CYCLE_COPY: u64 = 2u64 << 52;            
+    /// Set cycle-type: fill
+    pub const SOM_CYCLE_FILL: u64 = 3u64 << 52;            
+    /// Cycle-type mask
+    pub const SOM_CYCLE_MASK: u64 = 3u64 << 52;            
+    /// Cycle-type shift
+    pub const SOM_CYCLE_SHIFT: u64 = 52;
+    
+    /// Texture: enable perspective correction
+    pub const SOM_TEXTURE_PERSP: u64 = 1u64 << 51;              
+    /// Texture: enable "detail"
+    pub const SOM_TEXTURE_DETAIL: u64 = 1u64 << 50;              
+    /// Texture: enable "sharpen"
+    pub const SOM_TEXTURE_SHARPEN: u64 = 1u64 << 49;              
+    /// Texture: enable LODs.
+    pub const SOM_TEXTURE_LOD: u64 = 1u64 << 48;              
+    /// Texture: LODs shift
+    pub const SOM_TEXTURE_LOD_SHIFT: u64 = 48;
+    
+    /// TLUT: no palettes
+    pub const SOM_TLUT_NONE: u64 = 0u64 << 46;              
+    /// TLUT: draw with palettes in format RGB16
+    pub const SOM_TLUT_RGBA16: u64 = 2u64 << 46;              
+    /// TLUT: draw with palettes in format IA16
+    pub const SOM_TLUT_IA16: u64 = 3u64 << 46;              
+    /// TLUT mask
+    pub const SOM_TLUT_MASK: u64 = 3u64 << 46;              
+    /// TLUT mask shift
+    pub const SOM_TLUT_SHIFT: u64 = 46;
+    
+    /// Texture sampling: point sampling (1x1)
+    pub const SOM_SAMPLE_POINT: u64 = 0u64 << 44;              
+    /// Texture sampling: bilinear interpolation (2x2)
+    pub const SOM_SAMPLE_BILINEAR: u64 = 2u64 << 44;              
+    /// Texture sampling: mid-texel average (2x2)
+    pub const SOM_SAMPLE_MEDIAN: u64 = 3u64 << 44;              
+    /// Texture sampling mask
+    pub const SOM_SAMPLE_MASK: u64 = 3u64 << 44;              
+    /// Texture sampling mask shift
+    pub const SOM_SAMPLE_SHIFT: u64 = 44;
+    
+    /// Texture Filter, cycle 0 (TEX0): standard fetching (for RGB)
+    pub const SOM_TF0_RGB: u64 = 1u64 << 43;               
+    /// Texture Filter, cycle 0 (TEX0): fetch nearest and do first step of color conversion (for YUV)
+    pub const SOM_TF0_YUV: u64 = 0u64 << 43;               
+    /// Texture Filter, cycle 1 (TEX1): standard fetching (for RGB)
+    pub const SOM_TF1_RGB: u64 = 2u64 << 41;               
+    /// Texture Filter, cycle 1 (TEX1): fetch nearest and do first step of color conversion (for YUV)
+    pub const SOM_TF1_YUV: u64 = 0u64 << 41;               
+    /// Texture Filter, cycle 1 (TEX1): don't fetch, and instead do color conversion on TEX0 (allows YUV with bilinear filtering)
+    pub const SOM_TF1_YUVTEX0: u64 = 1u64 << 41;               
+    /// Texture Filter mask
+    pub const SOM_TF_MASK: u64 = 7u64 << 41;               
+    /// Texture filter mask shift
+    pub const SOM_TF_SHIFT: u64 = 41;
+    
+    /// RGB Dithering: square filter
+    pub const SOM_RGBDITHER_SQUARE: u64 = 0u64 << 38;            
+    /// RGB Dithering: bayer filter
+    pub const SOM_RGBDITHER_BAYER: u64 = 1u64 << 38;            
+    /// RGB Dithering: noise
+    pub const SOM_RGBDITHER_NOISE: u64 = 2u64 << 38;            
+    /// RGB Dithering: none
+    pub const SOM_RGBDITHER_NONE: u64 = 3u64 << 38;            
+    /// RGB Dithering mask
+    pub const SOM_RGBDITHER_MASK: u64 = 3u64 << 38;            
+    /// RGB Dithering mask shift
+    pub const SOM_RGBDITHER_SHIFT: u64 = 38;
+    
+    /// Alpha Dithering: same as RGB
+    pub const SOM_ALPHADITHER_SAME: u64 = 0u64 << 36;            
+    /// Alpha Dithering: invert pattern compared to RG
+    pub const SOM_ALPHADITHER_INVERT: u64 = 1u64 << 36;            
+    /// Alpha Dithering: noise
+    pub const SOM_ALPHADITHER_NOISE: u64 = 2u64 << 36;            
+    /// Alpha Dithering: none
+    pub const SOM_ALPHADITHER_NONE: u64 = 3u64 << 36;            
+    /// Alpha Dithering mask
+    pub const SOM_ALPHADITHER_MASK: u64 = 3u64 << 36;            
+    /// Alpha Dithering mask shift
+    pub const SOM_ALPHADITHER_SHIFT: u64 = 36;
+    
+    /// RDPQ special state: fogging is enabled
+    pub const SOMX_FOG: u64 = 1u64 << 32;            
+    /// RDPQ special state: render mode update is frozen (see #rdpq_mode_begin)
+    pub const SOMX_UPDATE_FREEZE: u64 = 1u64 << 33;            
+    /// RDPQ special state: reduced antialiasing is enabled
+    pub const SOMX_AA_REDUCED: u64 = 1u64 << 34;            
+    /// RDPQ special state: mimap interpolation (aka trilinear) requested
+    pub const SOMX_LOD_INTERPOLATE: u64 = 1u64 << 35;            
+    
+    /// Blender: mask of settings related to pass 0
+    pub const SOM_BLEND0_MASK: u64 = 0xCCCC0000u64 | SOM_BLENDING | SOM_READ_ENABLE | SOMX_BLEND_2PASS;
+    /// Blender: mask of settings related to pass 1
+    pub const SOM_BLEND1_MASK: u64 = 0x33330000u64 | SOM_BLENDING | SOM_READ_ENABLE | SOMX_BLEND_2PASS;
+    /// Blender: mask of all settings
+    pub const SOM_BLEND_MASK: u64 = SOM_BLEND0_MASK | SOM_BLEND1_MASK;
+    
+    /// RDPQ special state: record that the blender is made of 2 passes
+    pub const SOMX_BLEND_2PASS: u64 = 1u64 << 15;            
+    
+    /// Activate blending for all pixels
+    pub const SOM_BLENDING: u64 = 1u64 << 14;            
+    
+    /// Blender IN_ALPHA is the output of the combiner output (default)
+    pub const SOM_BLALPHA_CC: u64 = 0u64 << 12;          
+    /// Blender IN_ALPHA is the coverage of the current pixel
+    pub const SOM_BLALPHA_CVG: u64 = 2u64 << 12;          
+    /// Blender IN_ALPHA is the product of the combiner output and the coverage
+    pub const SOM_BLALPHA_CVG_TIMES_CC: u64 = 3u64 << 12;          
+    /// Blender alpha configuration mask
+    pub const SOM_BLALPHA_MASK: u64 = 3u64 << 12;          
+    /// Blender alpha configuration shift
+    pub const SOM_BLALPHA_SHIFT: u64 = 12;
+    
+    /// Z-mode: opaque surface
+    pub const SOM_ZMODE_OPAQUE: u64 = 0u64 << 10;        
+    /// Z-mode: interprenating surfaces
+    pub const SOM_ZMODE_INTERPENETRATING: u64 = 1u64 << 10;        
+    /// Z-mode: transparent surface
+    pub const SOM_ZMODE_TRANSPARENT: u64 = 2u64 << 10;        
+    /// Z-mode: decal surface
+    pub const SOM_ZMODE_DECAL: u64 = 3u64 << 10;        
+    /// Z-mode mask
+    pub const SOM_ZMODE_MASK: u64 = 3u64 << 10;        
+    /// Z-mode mask shift
+    pub const SOM_ZMODE_SHIFT: u64 = 10;
+    
+    /// Activate Z-buffer write
+    pub const SOM_Z_WRITE: u64 = 1u64 << 5;             
+    /// Z-buffer write bit shift
+    pub const SOM_Z_WRITE_SHIFT: u64 = 5;
+    
+    /// Activate Z-buffer compare
+    pub const SOM_Z_COMPARE: u64 = 1u64 << 4;             
+    /// Z-buffer compare bit shift
+    pub const SOM_Z_COMPARE_SHIFT: u64 = 4;
+    
+    /// Z-source: per-pixel Z
+    pub const SOM_ZSOURCE_PIXEL: u64 = 0u64 << 2;             
+    /// Z-source: fixed value
+    pub const SOM_ZSOURCE_PRIM: u64 = 1u64 << 2;             
+    /// Z-source mask
+    pub const SOM_ZSOURCE_MASK: u64 = 1u64 << 2;             
+    /// Z-source mask shift
+    pub const SOM_ZSOURCE_SHIFT: u64 = 2;
+    
+    /// Alpha Compare: disable
+    pub const SOM_ALPHACOMPARE_NONE: u64 = 0u64 << 0;        
+    /// Alpha Compare: use blend alpha as threshold
+    pub const SOM_ALPHACOMPARE_THRESHOLD: u64 = 1u64 << 0;        
+    /// Alpha Compare: use noise as threshold
+    pub const SOM_ALPHACOMPARE_NOISE: u64 = 3u64 << 0;        
+    /// Alpha Compare mask
+    pub const SOM_ALPHACOMPARE_MASK: u64 = 3u64 << 0;        
+    /// Alpha Compare mask shift
+    pub const SOM_ALPHACOMPARE_SHIFT: u64 = 0;
+    
+    /// Enable reads from framebuffer
+    pub const SOM_READ_ENABLE: u64 = 1u64 << 6;  
+    /// Enable anti-alias
+    pub const SOM_AA_ENABLE: u64 = 1u64 << 3;  
+    
+    /// Coverage: add and clamp to 7 (full)
+    pub const SOM_COVERAGE_DEST_CLAMP: u64 = 0u64 << 8;  
+    /// Coverage: add and wrap from 0
+    pub const SOM_COVERAGE_DEST_WRAP: u64 = 1u64 << 8;  
+    /// Coverage: force 7 (full)
+    pub const SOM_COVERAGE_DEST_ZAP: u64 = 2u64 << 8;  
+    /// Coverage: save (don't write)
+    pub const SOM_COVERAGE_DEST_SAVE: u64 = 3u64 << 8;  
+    /// Coverage mask
+    pub const SOM_COVERAGE_DEST_MASK: u64 = 3u64 << 8;  
+    /// Coverage mask shift
+    pub const SOM_COVERAGE_DEST_SHIFT: u64 = 8;
+    
+    /// Update color buffer only on coverage overflow
+    pub const SOM_COLOR_ON_CVG_OVERFLOW: u64 = 1u64 << 7;  
+    
+    /// SOME_OTHER_MODES RDP Color Combiner configuration
+    pub mod cc {
+        //! Helper macros for [`combiner1`](crate::rdpq::combiner1) and [`combiner2`](crate::rdpq::combiner2) macros, which create
+        //! [Combiner](crate::rdpq::Combiner) states.
+        //! 
+        //! Generally, you don't need to access these values directly.
+        pub const _COMB1_RGB_SUBA_TEX0: u64 = 1;
+        pub const _COMB1_RGB_SUBA_PRIM: u64 = 3;
+        pub const _COMB1_RGB_SUBA_SHADE: u64 = 4;
+        pub const _COMB1_RGB_SUBA_ENV: u64 = 5;
+        pub const _COMB1_RGB_SUBA_ONE: u64 = 6;
+        pub const _COMB1_RGB_SUBA_1: u64 = 6;
+        pub const _COMB1_RGB_SUBA_NOISE: u64 = 7;
+        pub const _COMB1_RGB_SUBA_ZERO: u64 = 8;
+        pub const _COMB1_RGB_SUBA_0: u64 = 8;
+        
+        pub const _COMB2A_RGB_SUBA_TEX0: u64 = 1;
+        pub const _COMB2A_RGB_SUBA_TEX1: u64 = 2;
+        pub const _COMB2A_RGB_SUBA_PRIM: u64 = 3;
+        pub const _COMB2A_RGB_SUBA_SHADE: u64 = 4;
+        pub const _COMB2A_RGB_SUBA_ENV: u64 = 5;
+        pub const _COMB2A_RGB_SUBA_ONE: u64 = 6;
+        pub const _COMB2A_RGB_SUBA_1: u64 = 6;
+        pub const _COMB2A_RGB_SUBA_NOISE: u64 = 7;
+        pub const _COMB2A_RGB_SUBA_ZERO: u64 = 8;
+        pub const _COMB2A_RGB_SUBA_0: u64 = 8;
+        
+        pub const _COMB2B_RGB_SUBA_COMBINED: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_RGB_SUBA_TEX1: u64 = 1;
+        pub const _COMB2B_RGB_SUBA_PRIM: u64 = 3;
+        pub const _COMB2B_RGB_SUBA_SHADE: u64 = 4;
+        pub const _COMB2B_RGB_SUBA_ENV: u64 = 5;
+        pub const _COMB2B_RGB_SUBA_ONE: u64 = 6;
+        pub const _COMB2B_RGB_SUBA_1: u64 = 6;
+        pub const _COMB2B_RGB_SUBA_NOISE: u64 = 7;
+        pub const _COMB2B_RGB_SUBA_ZERO: u64 = 8;
+        pub const _COMB2B_RGB_SUBA_0: u64 = 8;
+        
+        pub const _COMB1_RGB_SUBB_TEX0: u64 = 1;
+        pub const _COMB1_RGB_SUBB_PRIM: u64 = 3;
+        pub const _COMB1_RGB_SUBB_SHADE: u64 = 4;
+        pub const _COMB1_RGB_SUBB_ENV: u64 = 5;
+        pub const _COMB1_RGB_SUBB_KEYCENTER: u64 = 6;
+        pub const _COMB1_RGB_SUBB_K4: u64 = 7;
+        pub const _COMB1_RGB_SUBB_ZERO: u64 = 8;
+        pub const _COMB1_RGB_SUBB_0: u64 = 8;
+        
+        pub const _COMB2A_RGB_SUBB_TEX0: u64 = 1;
+        pub const _COMB2A_RGB_SUBB_TEX1: u64 = 2;
+        pub const _COMB2A_RGB_SUBB_PRIM: u64 = 3;
+        pub const _COMB2A_RGB_SUBB_SHADE: u64 = 4;
+        pub const _COMB2A_RGB_SUBB_ENV: u64 = 5;
+        pub const _COMB2A_RGB_SUBB_KEYCENTER: u64 = 6;
+        pub const _COMB2A_RGB_SUBB_K4: u64 = 7;
+        pub const _COMB2A_RGB_SUBB_ZERO: u64 = 8;
+        pub const _COMB2A_RGB_SUBB_0: u64 = 8;
+        
+        pub const _COMB2B_RGB_SUBB_COMBINED: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_RGB_SUBB_TEX1: u64 = 1;
+        pub const _COMB2B_RGB_SUBB_PRIM: u64 = 3;
+        pub const _COMB2B_RGB_SUBB_SHADE: u64 = 4;
+        pub const _COMB2B_RGB_SUBB_ENV: u64 = 5;
+        pub const _COMB2B_RGB_SUBB_KEYCENTER: u64 = 6;
+        pub const _COMB2B_RGB_SUBB_K4: u64 = 7;
+        pub const _COMB2B_RGB_SUBB_ZERO: u64 = 8;
+        pub const _COMB2B_RGB_SUBB_0: u64 = 8;
+        
+        pub const _COMB1_RGB_MUL_TEX0: u64 = 1;
+        pub const _COMB1_RGB_MUL_PRIM: u64 = 3;
+        pub const _COMB1_RGB_MUL_SHADE: u64 = 4;
+        pub const _COMB1_RGB_MUL_ENV: u64 = 5;
+        pub const _COMB1_RGB_MUL_KEYSCALE: u64 = 6;
+        pub const _COMB1_RGB_MUL_TEX0_ALPHA: u64 = 8;
+        pub const _COMB1_RGB_MUL_PRIM_ALPHA: u64 = 10;
+        pub const _COMB1_RGB_MUL_SHADE_ALPHA: u64 = 11;
+        pub const _COMB1_RGB_MUL_ENV_ALPHA: u64 = 12;
+        pub const _COMB1_RGB_MUL_LOD_FRAC: u64 = 13;
+        pub const _COMB1_RGB_MUL_PRIM_LOD_FRAC: u64 = 14;
+        pub const _COMB1_RGB_MUL_K5: u64 = 15;
+        pub const _COMB1_RGB_MUL_ZERO: u64 = 16;
+        pub const _COMB1_RGB_MUL_0: u64 = 16;
+        
+        pub const _COMB2A_RGB_MUL_TEX0: u64 = 1;
+        pub const _COMB2A_RGB_MUL_TEX1: u64 = 2;
+        pub const _COMB2A_RGB_MUL_PRIM: u64 = 3;
+        pub const _COMB2A_RGB_MUL_SHADE: u64 = 4;
+        pub const _COMB2A_RGB_MUL_ENV: u64 = 5;
+        pub const _COMB2A_RGB_MUL_KEYSCALE: u64 = 6;
+        pub const _COMB2A_RGB_MUL_TEX0_ALPHA: u64 = 8;
+        pub const _COMB2A_RGB_MUL_TEX1_ALPHA: u64 = 9;
+        pub const _COMB2A_RGB_MUL_PRIM_ALPHA: u64 = 10;
+        pub const _COMB2A_RGB_MUL_SHADE_ALPHA: u64 = 11;
+        pub const _COMB2A_RGB_MUL_ENV_ALPHA: u64 = 12;
+        pub const _COMB2A_RGB_MUL_LOD_FRAC: u64 = 13;
+        pub const _COMB2A_RGB_MUL_PRIM_LOD_FRAC: u64 = 14;
+        pub const _COMB2A_RGB_MUL_K5: u64 = 15;
+        pub const _COMB2A_RGB_MUL_ZERO: u64 = 16;
+        pub const _COMB2A_RGB_MUL_0: u64 = 16;
+        
+        pub const _COMB2B_RGB_MUL_COMBINED: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_RGB_MUL_TEX1: u64 = 1;
+        pub const _COMB2B_RGB_MUL_PRIM: u64 = 3;
+        pub const _COMB2B_RGB_MUL_SHADE: u64 = 4;
+        pub const _COMB2B_RGB_MUL_ENV: u64 = 5;
+        pub const _COMB2B_RGB_MUL_KEYSCALE: u64 = 6;
+        pub const _COMB2B_RGB_MUL_COMBINED_ALPHA: u64 = 7;
+        /// TEX0_ALPHA not available in 2nd cycle (pipelined)
+        pub const _COMB2B_RGB_MUL_TEX1_ALPHA: u64 = 8;
+        pub const _COMB2B_RGB_MUL_PRIM_ALPHA: u64 = 10;
+        pub const _COMB2B_RGB_MUL_SHADE_ALPHA: u64 = 11;
+        pub const _COMB2B_RGB_MUL_ENV_ALPHA: u64 = 12;
+        pub const _COMB2B_RGB_MUL_LOD_FRAC: u64 = 13;
+        pub const _COMB2B_RGB_MUL_PRIM_LOD_FRAC: u64 = 14;
+        pub const _COMB2B_RGB_MUL_K5: u64 = 15;
+        pub const _COMB2B_RGB_MUL_ZERO: u64 = 16;
+        pub const _COMB2B_RGB_MUL_0: u64 = 16;
+        
+        pub const _COMB1_RGB_ADD_TEX0: u64 = 1;
+        pub const _COMB1_RGB_ADD_PRIM: u64 = 3;
+        pub const _COMB1_RGB_ADD_SHADE: u64 = 4;
+        pub const _COMB1_RGB_ADD_ENV: u64 = 5;
+        pub const _COMB1_RGB_ADD_ONE: u64 = 6;
+        pub const _COMB1_RGB_ADD_1: u64 = 6;
+        pub const _COMB1_RGB_ADD_ZERO: u64 = 7;
+        pub const _COMB1_RGB_ADD_0: u64 = 7;
+        
+        pub const _COMB2A_RGB_ADD_TEX0: u64 = 1;
+        pub const _COMB2A_RGB_ADD_TEX1: u64 = 2;
+        pub const _COMB2A_RGB_ADD_PRIM: u64 = 3;
+        pub const _COMB2A_RGB_ADD_SHADE: u64 = 4;
+        pub const _COMB2A_RGB_ADD_ENV: u64 = 5;
+        pub const _COMB2A_RGB_ADD_ONE: u64 = 6;
+        pub const _COMB2A_RGB_ADD_1: u64 = 6;
+        pub const _COMB2A_RGB_ADD_ZERO: u64 = 7;
+        pub const _COMB2A_RGB_ADD_0: u64 = 7;
+        
+        pub const _COMB2B_RGB_ADD_COMBINED: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_RGB_ADD_TEX1: u64 = 1;
+        pub const _COMB2B_RGB_ADD_PRIM: u64 = 3;
+        pub const _COMB2B_RGB_ADD_SHADE: u64 = 4;
+        pub const _COMB2B_RGB_ADD_ENV: u64 = 5;
+        pub const _COMB2B_RGB_ADD_ONE: u64 = 6;
+        pub const _COMB2B_RGB_ADD_1: u64 = 6;
+        pub const _COMB2B_RGB_ADD_ZERO: u64 = 7;
+        pub const _COMB2B_RGB_ADD_0: u64 = 7;
+        
+        pub const _COMB1_ALPHA_ADDSUB_TEX0: u64 = 1;
+        pub const _COMB1_ALPHA_ADDSUB_PRIM: u64 = 3;
+        pub const _COMB1_ALPHA_ADDSUB_SHADE: u64 = 4;
+        pub const _COMB1_ALPHA_ADDSUB_ENV: u64 = 5;
+        pub const _COMB1_ALPHA_ADDSUB_ONE: u64 = 6;
+        pub const _COMB1_ALPHA_ADDSUB_1: u64 = 6;
+        pub const _COMB1_ALPHA_ADDSUB_ZERO: u64 = 7;
+        pub const _COMB1_ALPHA_ADDSUB_0: u64 = 7;
+        
+        pub const _COMB2A_ALPHA_ADDSUB_TEX0: u64 = 1;
+        pub const _COMB2A_ALPHA_ADDSUB_TEX1: u64 = 2;
+        pub const _COMB2A_ALPHA_ADDSUB_PRIM: u64 = 3;
+        pub const _COMB2A_ALPHA_ADDSUB_SHADE: u64 = 4;
+        pub const _COMB2A_ALPHA_ADDSUB_ENV: u64 = 5;
+        pub const _COMB2A_ALPHA_ADDSUB_ONE: u64 = 6;
+        pub const _COMB2A_ALPHA_ADDSUB_1: u64 = 6;
+        pub const _COMB2A_ALPHA_ADDSUB_ZERO: u64 = 7;
+        pub const _COMB2A_ALPHA_ADDSUB_0: u64 = 7;
+        
+        pub const _COMB2B_ALPHA_ADDSUB_COMBINED: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_ALPHA_ADDSUB_TEX1: u64 = 1;
+        pub const _COMB2B_ALPHA_ADDSUB_PRIM: u64 = 3;
+        pub const _COMB2B_ALPHA_ADDSUB_SHADE: u64 = 4;
+        pub const _COMB2B_ALPHA_ADDSUB_ENV: u64 = 5;
+        pub const _COMB2B_ALPHA_ADDSUB_ONE: u64 = 6;
+        pub const _COMB2B_ALPHA_ADDSUB_1: u64 = 6;
+        pub const _COMB2B_ALPHA_ADDSUB_ZERO: u64 = 7;
+        pub const _COMB2B_ALPHA_ADDSUB_0: u64 = 7;
+        
+        pub const _COMB1_ALPHA_MUL_LOD_FRAC: u64 = 0;
+        pub const _COMB1_ALPHA_MUL_TEX0: u64 = 1;
+        pub const _COMB1_ALPHA_MUL_PRIM: u64 = 3;
+        pub const _COMB1_ALPHA_MUL_SHADE: u64 = 4;
+        pub const _COMB1_ALPHA_MUL_ENV: u64 = 5;
+        pub const _COMB1_ALPHA_MUL_PRIM_LOD_FRAC: u64 = 6;
+        pub const _COMB1_ALPHA_MUL_ZERO: u64 = 7;
+        pub const _COMB1_ALPHA_MUL_0: u64 = 7;
+        
+        pub const _COMB2A_ALPHA_MUL_LOD_FRAC: u64 = 0;
+        pub const _COMB2A_ALPHA_MUL_TEX0: u64 = 1;
+        pub const _COMB2A_ALPHA_MUL_TEX1: u64 = 2;
+        pub const _COMB2A_ALPHA_MUL_PRIM: u64 = 3;
+        pub const _COMB2A_ALPHA_MUL_SHADE: u64 = 4;
+        pub const _COMB2A_ALPHA_MUL_ENV: u64 = 5;
+        pub const _COMB2A_ALPHA_MUL_PRIM_LOD_FRAC: u64 = 6;
+        pub const _COMB2A_ALPHA_MUL_ZERO: u64 = 7;
+        pub const _COMB2A_ALPHA_MUL_0: u64 = 7;
+        
+        pub const _COMB2B_ALPHA_MUL_LOD_FRAC: u64 = 0;
+        /// TEX0 not available in 2nd cycle (pipelined)
+        pub const _COMB2B_ALPHA_MUL_TEX1: u64 = 1;
+        pub const _COMB2B_ALPHA_MUL_PRIM: u64 = 3;
+        pub const _COMB2B_ALPHA_MUL_SHADE: u64 = 4;
+        pub const _COMB2B_ALPHA_MUL_ENV: u64 = 5;
+        pub const _COMB2B_ALPHA_MUL_PRIM_LOD_FRAC: u64 = 6;
+        pub const _COMB2B_ALPHA_MUL_ZERO: u64 = 7;
+        pub const _COMB2B_ALPHA_MUL_0: u64 = 7;
+    }
+
+    /// SOME_OTHER_MODES RDP Color Blender configuration
+    pub mod bl {
+        //! Helper macros for [`blender`](crate::rdpq::blender) and [`blender2`](crate::rdpq::blender) macros, which create
+        //! [Blender](crate::rdpq::Blender) states.
+        //! 
+        //! Generally, you don't need to access these values directly.
+        pub const _SOM_BLEND1_A_IN_RGB: u32 = 0u32;
+        pub const _SOM_BLEND1_A_MEMORY_RGB: u32 = 1u32;
+        pub const _SOM_BLEND1_A_BLEND_RGB: u32 = 2u32;
+        pub const _SOM_BLEND1_A_FOG_RGB: u32 = 3u32;
+        
+        pub const _SOM_BLEND1_B1_IN_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND1_B1_FOG_ALPHA: u32 = 1u32;
+        pub const _SOM_BLEND1_B1_SHADE_ALPHA: u32 = 2u32;
+        pub const _SOM_BLEND1_B1_ZERO: u32 = 3u32;
+        pub const _SOM_BLEND1_B1_0: u32 = 3u32;
+        
+        pub const _SOM_BLEND1_B2_INV_MUX_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND1_B2_MEMORY_CVG: u32 = 1u32;
+        pub const _SOM_BLEND1_B2_ONE: u32 = 2u32;
+        pub const _SOM_BLEND1_B2_1: u32 = 2u32;
+        pub const _SOM_BLEND1_B2_ZERO: u32 = 3u32;
+        pub const _SOM_BLEND1_B2_0: u32 = 3u32;
+        
+        pub const _SOM_BLEND2A_A_IN_RGB: u32 = 0u32;
+        pub const _SOM_BLEND2A_A_BLEND_RGB: u32 = 2u32;
+        pub const _SOM_BLEND2A_A_FOG_RGB: u32 = 3u32;
+        
+        pub const _SOM_BLEND2A_B1_IN_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND2A_B1_FOG_ALPHA: u32 = 1u32;
+        pub const _SOM_BLEND2A_B1_SHADE_ALPHA: u32 = 2u32;
+        pub const _SOM_BLEND2A_B1_ZERO: u32 = 3u32;
+        pub const _SOM_BLEND2A_B1_0: u32 = 3u32;
+        
+        pub const _SOM_BLEND2A_B2_INV_MUX_ALPHA: u32 = 0u32;    // only valid option is "1-b1" in the first pass
+        
+        pub const _SOM_BLEND2B_A_CYCLE1_RGB: u32 = 0u32;
+        pub const _SOM_BLEND2B_A_MEMORY_RGB: u32 = 1u32;
+        pub const _SOM_BLEND2B_A_BLEND_RGB: u32 = 2u32;
+        pub const _SOM_BLEND2B_A_FOG_RGB: u32 = 3u32;
+        
+        pub const _SOM_BLEND2B_B1_IN_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND2B_B1_FOG_ALPHA: u32 = 1u32;
+        pub const _SOM_BLEND2B_B1_SHADE_ALPHA: u32 = 2u32;
+        pub const _SOM_BLEND2B_B1_ZERO: u32 = 3u32;
+        pub const _SOM_BLEND2B_B1_0: u32 = 3u32;
+        
+        pub const _SOM_BLEND2B_B2_INV_MUX_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND2B_B2_MEMORY_CVG: u32 = 1u32;
+        pub const _SOM_BLEND2B_B2_ONE: u32 = 2u32;
+        pub const _SOM_BLEND2B_B2_1: u32 = 2u32;
+        pub const _SOM_BLEND2B_B2_ZERO: u32 = 3u32;
+        pub const _SOM_BLEND2B_B2_0: u32 = 3u32;
+        
+        pub const _SOM_BLEND_EXTRA_A_IN_RGB: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_A_CYCLE1_RGB: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_A_MEMORY_RGB: u32 = crate::rdpq::consts::SOM_READ_ENABLE as u32;
+        pub const _SOM_BLEND_EXTRA_A_BLEND_RGB: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_A_FOG_RGB: u32 = 0u32;
+        
+        pub const _SOM_BLEND_EXTRA_B1_IN_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B1_FOG_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B1_SHADE_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B1_ZERO: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B1_0: u32 = 0u32;
+        
+        pub const _SOM_BLEND_EXTRA_B2_INV_MUX_ALPHA: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B2_MEMORY_CVG: u32 = crate::rdpq::consts::SOM_READ_ENABLE as u32;
+        pub const _SOM_BLEND_EXTRA_B2_ONE: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B2_1: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B2_ZERO: u32 = 0u32;
+        pub const _SOM_BLEND_EXTRA_B2_0: u32 = 0u32;
+    }
+}
+
+// Implementation of __rdpq_1cyc_comb_rgb
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_1cyc_rgb {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB1_RGB_SUBA_ $suba>] << 52) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_SUBB_ $subb>] << 28) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_MUL_  $mul>]  << 47) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_ADD_  $add>]  << 15) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_SUBA_ $suba>] << 37) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_SUBB_ $subb>] << 24) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_MUL_  $mul>]  << 32) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_RGB_ADD_  $add>]   << 6)
+            )
+        }
+    });
+}
+
+// Implementation of __rdpq_1cyc_comb_alpha
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_1cyc_alpha {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $suba>] << 44) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $subb>] << 12) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_MUL_    $mul>]  << 41) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $add>]  <<  9) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $suba>] << 21) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $subb>] <<  3) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_MUL_    $mul>]  << 18) 
+             | ($crate::rdpq::consts::cc::[<_COMB1_ALPHA_ADDSUB_ $add>]   << 0)
+            )
+        }
+    });
+}
+
+// Implementation of __rdpq_2cyc_comb2a_rgb
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_2cyca_rgb {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB2A_RGB_SUBA_ $suba>] << 52) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_RGB_SUBB_ $subb>] << 28) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_RGB_MUL_  $mul>]  << 47) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_RGB_ADD_  $add>]  << 15) 
+            )
+        }
+    });
+}
+
+// Implementation of __rdpq_2cyc_comb2a_alpha
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_2cyca_alpha {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB2A_ALPHA_ADDSUB_ $suba>] << 44) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_ALPHA_ADDSUB_ $subb>] << 12) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_ALPHA_MUL_    $mul>]  << 41) 
+             | ($crate::rdpq::consts::cc::[<_COMB2A_ALPHA_ADDSUB_ $add>]  <<  9) 
+            )
+        }
+    });
+}
+
+// Implementation of __rdpq_2cyc_comb2b_rgb
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_2cycb_rgb {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB2B_RGB_SUBA_ $suba>] << 37) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_RGB_SUBB_ $subb>] << 24) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_RGB_MUL_  $mul>]  << 32) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_RGB_ADD_  $add>]  <<  6) 
+            )
+        }
+    });
+}
+
+// Implementation of __rdpq_2cyc_comb2b_alpha
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _comb_2cycb_alpha {
+    ($suba:tt, $subb:tt, $mul:tt, $add:tt) => ({
+        paste! {
+            (  ($crate::rdpq::consts::cc::[<_COMB2B_ALPHA_ADDSUB_ $suba>] << 21) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_ALPHA_ADDSUB_ $subb>] <<  3) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_ALPHA_MUL_    $mul>]  << 18) 
+             | ($crate::rdpq::consts::cc::[<_COMB2B_ALPHA_ADDSUB_ $add>]  <<  0) 
+            )
+        }
+    });
+}
+
+/// Build a 1-pass combiner formula
+///
+/// Rust: the Rust version has a slightly differently syntax than the C macro. Instead
+/// of the double-parenthese and comma-list of arguments, define your blend modes using
+/// the (A-B)*C+D syntax:
+///
+/// ```rust
+///     let mode = combiner1!((TEX0 - 0) * SHADE + 0, (0 - 0) * 0 + TEX0);
+/// ```
+///
+/// You may need to refer to the [`RDPQ_COMBINER1`] macro in `rdpq_macros.h` to
+/// understand how the arguments to this macro work and which are valid.
+#[macro_export]
+macro_rules! combiner1 {
+    (($suba_rgb:tt - $subb_rgb:tt) * $mul_rgb:tt + $add_rgb:tt,
+     ($suba_al:tt - $subb_al:tt) * $mul_al:tt + $add_al:tt) => ({ 
+        combiner1!($suba_rgb, $subb_rgb, $mul_rgb, $add_rgb,
+                   $suba_al, $subb_al, $mul_al, $add_al) });
+
+    ($suba_rgb:tt, $subb_rgb:tt, $mul_rgb:tt, $add_rgb:tt,
+     $suba_al:tt, $subb_al:tt, $mul_al:tt, $add_al:tt) => ({
+        let combrgb   = $crate::_comb_1cyc_rgb!($suba_rgb, $subb_rgb, $mul_rgb, $add_rgb);
+        let combalpha = $crate::_comb_1cyc_alpha!($suba_al, $subb_al, $mul_al, $add_al);
+        $crate::rdpq::Combiner::new_const(combrgb | combalpha)
+    });
+}
+
+/// Build a 2-pass combiner formula
+///
+/// Rust: the Rust version has a slightly differently syntax than the C macro. Instead
+/// of the double-parenthese and comma-list of arguments, define your blend modes using
+/// the (A-B)*C+D syntax:
+///
+/// ```rust
+///                           // RGB                      // A
+///     let mode = combiner2!((TEX0     - 0) * SHADE + 0, (0 - 0) * 0 + TEX0,     // Cyc 0
+///                           (COMBINED - 0) * ENV   + 0, (0 - 0) * 0 + COMBINED  // Cyc 1
+///                          );
+/// ```
+///
+/// You may need to refer to the [`RDPQ_COMBINER2`] macro in `rdpq_macros.h` to
+/// understand how the arguments to this macro work and which are valid.
+#[macro_export]
+macro_rules! combiner2 {
+    (($suba0_rgb:tt - $subb0_rgb:tt) * $mul0_rgb:tt + $add0_rgb:tt, ($suba0_al:tt - $subb0_al:tt) * $mul0_al:tt + $add0_al:tt,
+     ($suba1_rgb:tt - $subb1_rgb:tt) * $mul1_rgb:tt + $add1_rgb:tt, ($suba1_al:tt - $subb1_al:tt) * $mul1_al:tt + $add1_al:tt) => ({
+        combiner2!($suba0_rgb, $subb0_rgb, $mul0_rgb, $add0_rgb, $suba0_al, $subb0_al, $mul0_al, $add0_al,
+                   $suba1_rgb, $subb1_rgb, $mul1_rgb, $add1_rgb, $suba1_al, $subb1_al, $mul1_al, $add1_al) });
+
+    ($suba0_rgb:tt, $subb0_rgb:tt, $mul0_rgb:tt, $add0_rgb:tt, $suba0_al:tt, $subb0_al:tt, $mul0_al:tt, $add0_al:tt,
+     $suba1_rgb:tt, $subb1_rgb:tt, $mul1_rgb:tt, $add1_rgb:tt, $suba1_al:tt, $subb1_al:tt, $mul1_al:tt, $add1_al:tt) => ({
+        let combrgb0   = $crate::_comb_2cyca_rgb!($suba0_rgb, $subb0_rgb, $mul0_rgb, $add0_rgb);
+        let combalpha0 = $crate::_comb_2cyca_alpha!($suba0_al, $subb0_al, $mul0_al, $add0_al);
+        let combrgb1   = $crate::_comb_2cycb_rgb!($suba1_rgb, $subb1_rgb, $mul1_rgb, $add1_rgb);
+        let combalpha1 = $crate::_comb_2cycb_alpha!($suba1_al, $subb1_al, $mul1_al, $add1_al);
+        $crate::rdpq::Combiner::new_const(combrgb0 | combalpha0 | combrgb1 | combalpha1 | $crate::rdpq::consts::COMBINER_2PASS)
+    });
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _blend {
+    ($cyc:tt, $a1:tt, $b1:tt, $a2:tt, $b2:tt, $sa1:expr, $sb1:expr, $sa2:expr, $sb2:expr) => {
+        paste! {
+            (  ($crate::rdpq::consts::bl::[<_SOM_BLEND $cyc _A_  $a1>] << $sa1)
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND $cyc _B1_ $b1>] << $sb1)
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND $cyc _A_  $a2>] << $sa2)
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND $cyc _B2_ $b2>] << $sb2)
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND_EXTRA_A_  $a1>])
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND_EXTRA_B1_ $b1>])
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND_EXTRA_A_  $a2>])
+             | ($crate::rdpq::consts::bl::[<_SOM_BLEND_EXTRA_B2_ $b2>])
+            )
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _blend_1cyc_0 {
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
+        $crate::_blend!(1, $a1, $b1, $a2, $b2, 30, 26, 22, 18)
+    });
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _blend_1cyc_1 {
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
+        $crate::_blend!(1, $a1, $b1, $a2, $b2, 28, 24, 20, 16)
+    });
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _blend_2cyc_0 {
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
+        $crate::_blend!(2A, $a1, $b1, $a2, $b2, 30, 26, 22, 18)
+    });
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _blend_2cyc_1 {
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
+        $crate::_blend!(2B, $a1, $b1, $a2, $b2, 28, 24, 20, 16)
+    });
+}
+
+
+/// Build a 1-pass blender formula
+///
+/// Rust: the Rust version has a slightly differently syntax than the C macro. Instead
+/// of the double-parenthese and comma-list of arguments, define your blend modes using
+/// the P*A+Q*B syntax:
+///
+/// ```rust
+///     let mode = blender!(IN_RGB * IN_ALPHA + BLEND_RGB * INV_MUX_ALPHA);
+/// ```
+///
+/// You may need to refer to the [`RDPQ_BLENDER`] macro in `rdpq_macros.h` to
+/// understand how the arguments to this macro work and which are valid.
+#[macro_export]
+macro_rules! blender {
+    ($a1:tt * $b1:tt + $a2:tt * $b2:tt) => ({ blender!($a1, $b1, $a2, $b2) });
+
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
+        let onecycle0 = $crate::_blend_1cyc_0!($a1, $b1, $a2, $b2);
+        let onecycle1 = $crate::_blend_1cyc_1!($a1, $b1, $a2, $b2);
+        $crate::rdpq::Blender::new_const(onecycle0 | onecycle1)
+    });
+}
+
+/// Build a 2-pass blender formula
+///
+/// Rust: this version uses the same syntax as above, but takes two formula:
+///
+/// ```rust
+///    let mode = blender2!(IN_RGB     * IN_ALPHA + BLEND_RGB * INV_MUX_ALPHA,
+///                         CYCLE1_RGB * IN_ALPHA + BLEND_RGB * INV_MUX_ALPHA);
+/// 
+/// Not all arguments that are valid in 1-pass modes are valid in the second pass.
+///
+/// You may need to refer to the [`RDPQ_BLENDER2`] macro in `rdpq_macros.h` to
+/// understand how the arguments to this macro work and which are valid.
+#[macro_export]
+macro_rules! blender2 {
+    ($a1:tt * $b1:tt + $a2:tt * $b2:tt,
+     $c1:tt * $d1:tt + $c2:tt * $d2:tt) => ({ blender2!($a1, $b1, $a2, $b2, $c1, $d1, $c2, $d2) });
+
+    ($a1:tt, $b1:tt, $a2:tt, $b2:tt,
+     $c1:tt, $d1:tt, $c2:tt, $d2:tt) => ({
+        let twocycle0 = $crate::_blend_2cyc_0!($a1, $b1, $a2, $b2);
+        let twocycle1 = $crate::_blend_2cyc_1!($c1, $d1, $c2, $d2);
+        $crate::rdpq::Blender::new_const(twocycle0 | twocycle1 | ($crate::rdpq::consts::SOMX_BLEND_2PASS as u32))
+    });
+}
+
+/// Wrapper around [`rdpq_combiner_t`](libdragon_sys::rdpq_combiner_t)
+#[derive(Copy, Clone, PartialEq)]
+pub struct Combiner(libdragon_sys::rdpq_combiner_t);
+
+impl Combiner {
+    pub const fn new_const(v: u64) -> Self {
+        Self(v as libdragon_sys::rdpq_combiner_t)
+    }
+}
+
+impl Into<u64> for Combiner {
+    fn into(self) -> u64 {
+        self.0 as u64
+    }
+}
+
+impl From<u64> for Combiner {
+    fn from(v: u64) -> Self {
+        Self(v as libdragon_sys::rdpq_combiner_t)
+    }
+}
+
+/// Wrapper around [`rdpq_blender_t`](libdragon_sys::rdpq_blender_t)
+#[derive(Copy, Clone, PartialEq)]
+pub struct Blender(libdragon_sys::rdpq_blender_t);
+
+impl Blender {
+    pub const fn new_const(v: u32) -> Self {
+        Self(v as libdragon_sys::rdpq_blender_t)
+    }
+}
+
+impl Into<u32> for Blender {
+    fn into(self) -> u32 {
+        self.0 as u32
+    }
+}
+
+impl From<u32> for Blender {
+    fn from(v: u32) -> Self {
+        Self(v as libdragon_sys::rdpq_blender_t)
+    }
+}
+
 // rdpq_mode.h
 #[derive(Copy, Clone)]
 pub enum Dither {
@@ -1061,25 +1947,28 @@ pub fn mode_pop() {
 #[inline]
 pub fn mode_filter(filt: Filter) {
     let filt = Into::<libdragon_sys::rdpq_filter_s>::into(filt) as u64;
-    __mode_change_som(SOM_SAMPLE_MASK, filt << SOM_SAMPLE_SHIFT);
+    __mode_change_som(consts::SOM_SAMPLE_MASK, filt << consts::SOM_SAMPLE_SHIFT);
 }
 
 #[inline]
 pub fn mode_alphacompare(threshold: i32) {
     if threshold == 0 {
-        __mode_change_som(SOM_ALPHACOMPARE_MASK, 0);
+        __mode_change_som(consts::SOM_ALPHACOMPARE_MASK, 0);
     } else if threshold > 0 {
-        __mode_change_som(SOM_ALPHACOMPARE_MASK, SOM_ALPHACOMPARE_THRESHOLD);
+        __mode_change_som(consts::SOM_ALPHACOMPARE_MASK, consts::SOM_ALPHACOMPARE_THRESHOLD);
         set_blend_color(graphics::rgba32(0,0,0,threshold as u8));
     } else {
-        __mode_change_som(SOM_ALPHACOMPARE_MASK, SOM_ALPHACOMPARE_NOISE);
+        __mode_change_som(consts::SOM_ALPHACOMPARE_MASK, consts::SOM_ALPHACOMPARE_NOISE);
     }
 }
 
 #[inline]
 pub fn mode_tlut(tlut: Tlut) {
-    __mode_change_som(SOM_TLUT_MASK, (Into::<libdragon_sys::rdpq_tlut_s>::into(tlut) as u64) << SOM_TLUT_SHIFT);
+    __mode_change_som(consts::SOM_TLUT_MASK, (Into::<libdragon_sys::rdpq_tlut_s>::into(tlut) as u64) << consts::SOM_TLUT_SHIFT);
 }
+
+// rdpq_paragraph.h
+pub struct ParagraphChar;
 
 // rdpq_sprite.h
 //void rdpq_sprite_blit(sprite_t *sprite, float x0, float y0, const rdpq_blitparms_t *parms);
@@ -1224,54 +2113,6 @@ pub fn texture_rectangle(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32,
 pub fn __texture_rectangle_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32, t: i32) {
     unsafe {
         __rdpq_texture_rectangle_offline(tile.0 as libdragon_sys::rdpq_tile_t, x0, y0, x1, y1, s, t);
-    }
-}
-
-// rdpq_font.h
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct FontStyle {
-    pub color: graphics::Color,
-}
-
-impl Into<libdragon_sys::rdpq_fontstyle_t> for FontStyle {
-    fn into(self) -> libdragon_sys::rdpq_fontstyle_t {
-        unsafe {
-            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_fontstyle_t>(&self)
-        }
-    }
-}
-
-pub struct Font {
-    pub(crate) ptr: *mut libdragon_sys::rdpq_font_t,
-}
-
-impl Font {
-    /// See [`rdpq_font_load`](libdragon-sys::rdpq_font_load) for details.
-    ///
-    /// The Libdragon [`rdpq_font_t`](libdragon-sys::rdpq_font_t) is freed when this object is dropped
-    pub fn load(filename: &str) -> Self {
-        let cfilename = CString::new(filename).unwrap();
-        let ptr = unsafe {
-            libdragon_sys::rdpq_font_load(cfilename.as_ptr())
-        };
-        Self {
-            ptr: ptr,
-        }
-    }
-
-    pub fn style(&mut self, id: u8, style: FontStyle) {
-        unsafe {
-            libdragon_sys::rdpq_font_style(self.ptr, id, &Into::<libdragon_sys::rdpq_fontstyle_t>::into(style) as *const libdragon_sys::rdpq_fontstyle_t)
-        }
-    }
-}
-
-impl Drop for Font {
-    fn drop(&mut self) {
-        unsafe {
-            libdragon_sys::rdpq_font_free(self.ptr);
-        }
     }
 }
 

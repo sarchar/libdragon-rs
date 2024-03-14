@@ -17,6 +17,9 @@ pub use alloc::boxed::Box;
 pub use alloc::format;
 pub use alloc::sync::Arc;
 
+// re-export libdragon_sys, as things will be changing and there always may be a need for direct access
+pub use libdragon_sys;
+
 //#[macro_use] extern crate function_name;
 pub use function_name::named;
 
