@@ -2219,7 +2219,161 @@ pub fn mode_persp(perspective: bool) {
 #[inline] pub fn mode_end() { unsafe { libdragon_sys::rdpq_mode_end(); } }
 
 // rdpq_paragraph.h
-pub struct ParagraphChar;
+#[repr(C, packed)]
+pub struct ParagraphChar {
+    pub(crate) c: libdragon_sys::rdpq_paragraph_char_s,
+}
+
+/// Wrapper around `rdpq_paragraph_t`. 
+///
+/// See [`rdpq_paragraph_t`](libdragon_sys::rdpq_paragraph_t) for details.
+#[repr(C, packed)]
+pub struct Paragraph {
+    pub(crate) c: *mut libdragon_sys::rdpq_paragraph_t,
+}
+
+impl Paragraph {
+    /// Calculate the layout of a text using the specified parameters.
+    ///
+    /// Rust: returns an instance of Paragraph plus the number of bytes (not characters!) read
+    /// from `text`. 
+    ///
+    /// See [`rdpq_paragraph_build`](libdragon_sys::rdpq_paragraph_build) for details.
+    pub fn build(parms: TextParms, initial_font_id: u8, text: &str) -> (Paragraph, usize) {
+        let parms: libdragon_sys::rdpq_textparms_t = parms.into();
+        let ctext = CString::new(text).unwrap();
+        let mut len = ctext.to_bytes().len(); // does not contain any trailing \0
+        let ptr = unsafe {
+            let mut s = len as i32;
+            let ptr = libdragon_sys::rdpq_paragraph_build(&parms as *const _, initial_font_id, ctext.as_ptr(), &mut s as *mut _);
+            len = s as usize;
+            ptr
+        };
+        (Paragraph { c: ptr, }, len)
+    }
+
+    /// Render a text that was laid out by [`rdpq_paragraph_build`]
+    ///
+    /// See [`rdpq_paragraph_render`](libdragon_sys::rdpq_paragraph_render) for details.
+    pub fn render(&self, x0: f32, y0: f32) {
+        unsafe {
+            libdragon_sys::rdpq_paragraph_render(self.c as *const _, x0, y0);
+        }
+    }
+
+    /// Bounding box: (top-left x, top-left y, bottom-right x, bottom-right y)
+    pub fn bbox(&self) -> (f32, f32, f32, f32) {
+        unsafe { 
+            let r: &libdragon_sys::rdpq_paragraph_t = &*self.c;
+            (r.bbox.x0, r.bbox.y0, r.bbox.x0, r.bbox.y1)
+        }
+    }
+
+    /// Number of lines of the text
+    pub fn nlines(&self) -> usize { unsafe { (*self.c).nlines as usize } }
+    /// Total number of chars in this layout
+    pub fn nchars(&self) -> usize { unsafe { (*self.c).nchars as usize } }
+    /// Capacity of the chars array
+    pub fn capacity(&self) -> usize { unsafe { (*self.c).capacity as usize } }
+    /// Alignment offset of the text (X coord)
+    pub fn x0(&self) -> f32 { unsafe { (*self.c).x0 } }
+    /// Alignment offset of the text (Y coord)
+    pub fn y0(&self) -> f32 { unsafe { (*self.c).y0 } }
+    /// Array of chars
+    pub fn chars<'a>(&'a self) -> &'a [ParagraphChar] { 
+        // As long as ParagraphChar wraps only rdpq_paragraph_char_t, this cast should be safe
+        let ptr: *const ParagraphChar = unsafe { (*self.c).chars.as_ptr() as *const _ };
+        unsafe {
+            ::core::slice::from_raw_parts(ptr, self.nchars())
+        }
+    }
+}
+
+impl Drop for Paragraph {
+    /// Free the memory allocated by [`rdpq_paragraph_build`] or [`rdpq_paragraph_builder_end`].
+    ///
+    /// See [`rdpq_paragraph_free`](libdragon_sys::rdpq_paragraph_free) for details.
+    fn drop(&mut self) { unsafe { libdragon_sys::rdpq_paragraph_free(self.c); } }
+}
+
+/// Utility class to make paragraph building more Rust-like Example:
+///
+/// ```rust
+///
+/// let p: Paragraph = ParagraphBuilder::begin(parms, 1, None)
+///                                        .span("Hello, ")
+///                                        .font(2)
+///                                        .newline()
+///                                        .span("world!")
+///                                        .end();
+/// ```
+///
+/// See `rdpq_paragraph.h` in LibDragon for details.
+pub struct ParagraphBuilder<'a> {
+    pub(crate) _parms: core::pin::Pin<Box<libdragon_sys::rdpq_textparms_t>>,
+    pub(crate) phantom: core::marker::PhantomData<&'a u8>,
+}
+
+impl<'a> ParagraphBuilder<'a> {
+    /// Start a paragraph builder.
+    ///
+    /// See [`rdpq_paragraph_builder_begin`](libdragon_sys::rdpq_paragraph_builder_begin) for details.
+    pub fn begin<'b>(parms: TextParms, initial_font_id: u8, layout: Option<&'b Paragraph>) -> ParagraphBuilder<'b> {
+        // text parms have to persist throughout the entire builder
+        let parms: libdragon_sys::rdpq_textparms_t = parms.into();
+        let pinned = Box::pin(parms);
+        let layout_ptr: *mut libdragon_sys::rdpq_paragraph_t = layout.map_or_else(|| ::core::ptr::null_mut(), |p| p.c);
+        unsafe {
+            libdragon_sys::rdpq_paragraph_builder_begin(pinned.as_ref().get_ref() as *const _, initial_font_id, layout_ptr);
+        }
+        ParagraphBuilder {
+            _parms: pinned,
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Change the current font
+    ///
+    /// See [`rdpq_paragraph_builder_font`](libdragon_sys::rdpq_paragraph_builder_font) for details.
+    pub fn font(&mut self, font_id: u8) -> &mut Self {
+        unsafe { libdragon_sys::rdpq_paragraph_builder_font(font_id); }
+        self
+    }
+
+    /// Change the current style
+    ///
+    /// See [`rdpq_paragraph_builder_style`](libdragon_sys::rdpq_paragraph_builder_style) for details.
+    pub fn style(&mut self, style_id: u8) -> &mut Self {
+        unsafe { libdragon_sys::rdpq_paragraph_builder_style(style_id); }
+        self
+    }
+
+    /// Add a span of text
+    ///
+    /// See [`rdpq_paragraph_builder_span`](libdragon_sys::rdpq_paragraph_builder_span) for details.
+    pub fn span(&mut self, text: &str) -> &mut Self {
+        let ctext = CString::new(text).unwrap();
+        let len = ctext.to_bytes().len(); // does not contain any trailing \0
+        unsafe { libdragon_sys::rdpq_paragraph_builder_span(ctext.as_ptr(), len as i32); }
+        self
+    }
+
+    /// Start a new line
+    ///
+    /// See [`rdpq_paragraph_builder_newline`](libdragon_sys::rdpq_paragraph_builder_newline) for details.
+    pub fn newline(&mut self) -> &mut Self {
+        unsafe { libdragon_sys::rdpq_paragraph_builder_newline(); }
+        self
+    }
+
+    /// Finalize the paragraph builder and return the [Paragraph]
+    ///
+    /// See [`rdpq_paragraph_builder_end`](libdragon_sys::rdpq_paragraph_builder_end) for details.
+    pub fn end(&self) -> Paragraph {
+        let ptr = unsafe { libdragon_sys::rdpq_paragraph_builder_end() };
+        Paragraph { c: ptr, }
+    }
+}
 
 // rdpq_sprite.h
 //void rdpq_sprite_blit(sprite_t *sprite, float x0, float y0, const rdpq_blitparms_t *parms);
