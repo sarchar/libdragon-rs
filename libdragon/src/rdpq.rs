@@ -87,7 +87,9 @@ pub const CFG_DEFAULT: u32 = libdragon_sys::RDPQ_CFG_DEFAULT;
 // Used for manually translated inline functions
 extern "C" {
     fn __rdpq_write8(cmd_id: u32, arg0: u32, arg1: u32);
+    fn __rdpq_fixup_mode(cmd_id: u32, w0: u32, w1: u32);
     fn __rdpq_fixup_mode3(cmd_id: u32, w0: u32, w1: u32, w2: u32);
+    fn __rdpq_fixup_mode4(cmd_id: u32, w0: u32, w1: u32, w2: u32, w3: u32);
     fn __rdpq_write8_syncchange(cmd_id: u32, arg0: u32, arg1: u32, autosync: u32);
     fn __rdpq_fixup_write8_syncchange(cmd_id: u32, arg0: u32, arg1: u32, autosync: u32);
 }
@@ -1014,7 +1016,7 @@ pub mod consts {
     //! module contains many of the defines from rdpq_macros.h and other various files.
     use crate::combiner1;
     use paste::paste;
-    use crate::rdpq::Combiner;
+    use crate::rdpq::{Blender, Combiner};
 
     /// SET_OTHER_MODES bit constants. See rdpq_macros.h in LibDragon.
     ///
@@ -1229,11 +1231,22 @@ pub mod consts {
     
     /// Update color buffer only on coverage overflow
     pub const SOM_COLOR_ON_CVG_OVERFLOW: u64 = 1u64 << 7;  
+
+    /// Some standard blend modes
+    ///
+    /// Blending mode: multiplicative alpha
+    pub const BLENDER_MULTIPLY: Blender = crate::blender!(IN_RGB * IN_ALPHA + MEMORY_RGB * INV_MUX_ALPHA);
+    /// Blending mode: multiplicative alpha with a constant value
+    pub const BLENDER_MULTIPLY_CONST: Blender = crate::blender!(IN_RGB * FOG_ALPHA + MEMORY_RGB * INV_MUX_ALPHA);
+    /// Blending mode: additive alpha
+    pub const BLENDER_ADDTIVE: Blender = crate::blender!(IN_RGB * IN_ALPHA + MEMORY_RGB * ONE);
+    /// Fogging mode: standard.
+    pub const FOG_STANDARD: Blender = crate::blender!(IN_RGB * SHADE_ALPHA + FOG_RGB * INV_MUX_ALPHA);
     
     /// SOME_OTHER_MODES RDP Color Combiner configuration
     pub mod cc {
-        //! Helper macros for [`combiner1`](crate::rdpq::combiner1) and [`combiner2`](crate::rdpq::combiner2) macros, which create
-        //! [Combiner](crate::rdpq::Combiner) states.
+        //! Helper macros for [`combiner1`] and [`combiner2`] macros, which create
+        //! [Combiner] states.
         //! 
         //! Generally, you don't need to access these values directly.
         pub const _COMB1_RGB_SUBA_TEX0: u64 = 1;
@@ -1737,7 +1750,7 @@ macro_rules! _blend_2cyc_1 {
 /// understand how the arguments to this macro work and which are valid.
 #[macro_export]
 macro_rules! blender {
-    ($a1:tt * $b1:tt + $a2:tt * $b2:tt) => ({ blender!($a1, $b1, $a2, $b2) });
+    ($a1:tt * $b1:tt + $a2:tt * $b2:tt) => ({ $crate::blender!($a1, $b1, $a2, $b2) });
 
     ($a1:tt, $b1:tt, $a2:tt, $b2:tt) => ({
         let onecycle0 = $crate::_blend_1cyc_0!($a1, $b1, $a2, $b2);
@@ -1753,7 +1766,8 @@ macro_rules! blender {
 /// ```rust
 ///    let mode = blender2!(IN_RGB     * IN_ALPHA + BLEND_RGB * INV_MUX_ALPHA,
 ///                         CYCLE1_RGB * IN_ALPHA + BLEND_RGB * INV_MUX_ALPHA);
-/// 
+/// ```
+///
 /// Not all arguments that are valid in 1-pass modes are valid in the second pass.
 ///
 /// You may need to refer to the [`RDPQ_BLENDER2`] macro in `rdpq_macros.h` to
@@ -1816,27 +1830,97 @@ impl From<u32> for Blender {
 }
 
 // rdpq_mode.h
+
+// Internal helper, not part of the public API
+#[doc(hidden)]
+#[inline]
+fn __mode_change_som(mask: u64, val: u64) {
+    if (mask >> 32) != 0 {
+        unsafe {
+            __rdpq_fixup_mode3(libdragon_sys::RDPQ_CMD_MODIFY_OTHER_MODES, 0 | (1 << 15), !((mask >> 32) as u32), (val >> 32) as u32);
+        }
+    }
+
+    if (mask as u32) != 0 {
+        unsafe {
+            __rdpq_fixup_mode3(libdragon_sys::RDPQ_CMD_MODIFY_OTHER_MODES, 4 | (1 << 15), !(mask as u32), val as u32);
+        }
+    }
+}
+
+/// Push the current render mode into the stack
+///
+/// See [`rdpq_mode_push`](libdragon_sys::rdpq_mode_push) for details.
+#[inline]
+pub fn mode_push() { unsafe { libdragon_sys::rdpq_mode_push(); } }
+
+/// Pop the current render mode from the stack
+///
+/// See [`rdpq_mode_pop`](libdragon_sys::rdpq_mode_pop) for details.
+pub fn mode_pop() { unsafe { libdragon_sys::rdpq_mode_pop(); } }
+
+/// Texture filtering types
+///
+/// See [`rdpq_filter_s`](libdragon_sys::rdpq_filter_s) for details
+pub enum Filter {
+    /// Point filtering (aka neartest)
+    Point,
+    /// Bilinear filtering
+    Bilinear,
+    /// Median filtering
+    Median
+}
+
+impl Into<libdragon_sys::rdpq_filter_s> for Filter {
+    fn into(self) -> libdragon_sys::rdpq_filter_s {
+        match self {
+            Filter::Point    => libdragon_sys::rdpq_filter_s_FILTER_POINT,
+            Filter::Bilinear => libdragon_sys::rdpq_filter_s_FILTER_BILINEAR,
+            Filter::Median   => libdragon_sys::rdpq_filter_s_FILTER_MEDIAN,
+        }
+    }
+}
+
+/// Diethering Configuration
+///
+/// See [`rdpq_dither_s`](libdragon_sys::rdpq_dither_s)
 #[derive(Copy, Clone)]
 pub enum Dither {
-    SquareSquare,
-    SquareInvSquare,
-    SquareNoise,
-    SquareNone,
-
-    BayerBayer,
-    BayerInvBayer,
-    BayerNoise,
-    BayerNone,
-
-    NoiseSquare,
-    NoiseInvSquare,
-    NoiseNoise,
-    NoiseNone,
-
-    NoneBayer,
-    NoneInvBayer,
-    NoneNoise,
-    NoneNone,
+    /// Dithering: RGB=Square, Alpha=Square
+    SquareSquare,       
+    /// Dithering: RGB=Square, Alpha=InvSquare
+    SquareInvSquare,    
+    /// Dithering: RGB=Square, Alpha=Noise
+    SquareNoise,        
+    /// Dithering: RGB=Square, Alpha=None
+    SquareNone,         
+                                                                    
+    /// Dithering: RGB=Bayer, Alpha=Bayer
+    BayerBayer,         
+    /// Dithering: RGB=Bayer, Alpha=InvBayer
+    BayerInvBayer,      
+    /// Dithering: RGB=Bayer, Alpha=Noise
+    BayerNoise,         
+    /// Dithering: RGB=Bayer, Alpha=None
+    BayerNone,          
+                                                                    
+    /// Dithering: RGB=Noise, Alpha=Square
+    NoiseSquare,        
+    /// Dithering: RGB=Noise, Alpha=InvSquare
+    NoiseInvSquare,     
+    /// Dithering: RGB=Noise, Alpha=Noise
+    NoiseNoise,         
+    /// Dithering: RGB=Noise, Alpha=None
+    NoiseNone,          
+                                                                    
+    /// Dithering: RGB=None, Alpha=Bayer
+    NoneBayer,          
+    /// Dithering: RGB=None, Alpha=InvBayer
+    NoneInvBayer,       
+    /// Dithering: RGB=None, Alpha=Noise
+    NoneNoise,          
+    /// Dithering: RGB=None, Alpha=None
+    NoneNone,           
 }
 
 impl Into<libdragon_sys::rdpq_dither_s> for Dither {
@@ -1862,25 +1946,16 @@ impl Into<libdragon_sys::rdpq_dither_s> for Dither {
     }
 }
 
-pub enum Filter {
-    Point,
-    Bilinear,
-    Median
-}
-
-impl Into<libdragon_sys::rdpq_filter_s> for Filter {
-    fn into(self) -> libdragon_sys::rdpq_filter_s {
-        match self {
-            Filter::Point    => libdragon_sys::rdpq_filter_s_FILTER_POINT,
-            Filter::Bilinear => libdragon_sys::rdpq_filter_s_FILTER_BILINEAR,
-            Filter::Median   => libdragon_sys::rdpq_filter_s_FILTER_MEDIAN,
-        }
-    }
-}
-
+/// Types of palettes supported by RDP
+///
+/// See [`rdpq_tlut_s`](libdragon_sys::rdpq_tlut_s) for details.
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Tlut {
+    /// No palette
     None,
+    /// Palette made of [surface::TexFormat::Rgba16] colors
     Rgba16,
+    /// Palette made of [surface::TexFormat::Ia16] colors
     Ia16,
 }
 
@@ -1894,62 +1969,175 @@ impl Into<libdragon_sys::rdpq_tlut_s> for Tlut {
     }
 }
 
-pub fn set_mode_standard() {
-    unsafe {
-        libdragon_sys::rdpq_set_mode_standard();
+impl From<surface::TexFormat> for Tlut {
+    /// Converts the specified texture format to the [Tlut] mode that is needed to draw a texture
+    /// of this format
+    ///
+    /// See [`rdpq_tlut_from_format`](libdragon_sys::rdpq_tlut_from_format) for details.
+    fn from(format: surface::TexFormat) -> Self {
+        match format {
+            surface::TexFormat::Ci4 => Self::Rgba16,
+            surface::TexFormat::Ci8 => Self::Rgba16,
+            _ => Self::None,
+        }
     }
 }
 
-pub fn set_mode_copy(transparency: bool) {
-    unsafe {
-        libdragon_sys::rdpq_set_mode_copy(transparency);
+/// Types of mipmap supported by RDP. Wrapper around `rdpq_mipmap_s`.
+///
+/// See [`rdpq_mipmap_s`](libdragon_sys::rdpq_mipmap_s) for details
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Mipmap {
+    /// Mipmap disabled
+    None,
+    /// Nearest mipmap level
+    Nearest,
+    /// Interpolate between the two nearest mipmap levels (also known as "trilinear")
+    Interpolate,
+    /// Interpolate between the two nearest mipmap levels (also known as "trilinear") with sharpening enabled
+    InterpolateSharpen,
+    /// Interpolate between the two nearest mipmap levels (also known as "trilinear") with detail texture enabled
+    InterpolateDetail,
+}
+
+impl Into<libdragon_sys::rdpq_mipmap_s> for Mipmap {
+    fn into(self) -> libdragon_sys::rdpq_mipmap_s {
+        match self {
+            Mipmap::None               => libdragon_sys::rdpq_mipmap_s_MIPMAP_NONE,
+            Mipmap::Nearest            => libdragon_sys::rdpq_mipmap_s_MIPMAP_NEAREST,
+            Mipmap::Interpolate        => libdragon_sys::rdpq_mipmap_s_MIPMAP_INTERPOLATE,
+            Mipmap::InterpolateSharpen => libdragon_sys::rdpq_mipmap_s_MIPMAP_INTERPOLATE_SHARPEN,
+            Mipmap::InterpolateDetail  => libdragon_sys::rdpq_mipmap_s_MIPMAP_INTERPOLATE_DETAIL,
+        }
     }
 }
 
+/// Types of antialiasing supported by RDP. Wrapper around `rdpq_antialias_s`.
+///
+/// See [`rdpq_antialias_s`](libdragon_sys::rdpq_antialias_s) for details.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Antialias {
+    /// No antialiasing
+    None,
+    /// Standard antialiasing
+    Standard,
+    /// Reduced antialiasing
+    Reduced,
+}
+
+impl Into<libdragon_sys::rdpq_antialias_s> for Antialias {
+    fn into(self) -> libdragon_sys::rdpq_antialias_s {
+        match self {
+            Antialias::None     => libdragon_sys::rdpq_antialias_s_AA_NONE,
+            Antialias::Standard => libdragon_sys::rdpq_antialias_s_AA_STANDARD,
+            Antialias::Reduced  => libdragon_sys::rdpq_antialias_s_AA_REDUCED,
+        }
+    }
+}
+
+
+/// Reset render mode to standard.
+///
+/// See [`rdpq_set_mode_standard`](libdragon_sys::rdpq_set_mode_standard) for details.
+#[inline] pub fn set_mode_standard() { unsafe { libdragon_sys::rdpq_set_mode_standard(); } }
+
+/// Reset render mode to FILL type
+///
+/// See [`rdpq_set_mode_fill`](libdragon_sys::rdpq_set_mode_fill) for details.
+#[inline]
 pub fn set_mode_fill(color: graphics::Color) {
-    extern "C" {
-        fn __rdpq_set_mode_fill();
-    }
-    unsafe {
-        __rdpq_set_mode_fill();
-    }
+    extern "C" { fn __rdpq_set_mode_fill(); }
+    unsafe { __rdpq_set_mode_fill(); }
     set_fill_color(color);
 }
 
-#[inline]
-fn __mode_change_som(mask: u64, val: u64) {
-    if (mask >> 32) != 0 {
+/// Reset render mode to COPY type.
+///
+/// See [`rdpq_set_mode_copy`](libdragon_sys::rdpq_set_mode_copy) for details.
+#[inline] pub fn set_mode_copy(transparency: bool) { unsafe { libdragon_sys::rdpq_set_mode_copy(transparency); } }
+
+/// Reset render mode to YUV mode.
+///
+/// See [`rdpq_set_mode_yuv`](libdragon_sys::rdpq_set_mode_yuv) for details.
+#[inline] pub fn set_mode_yuv(bilinear: bool) { unsafe { libdragon_sys::rdpq_set_mode_yuv(bilinear); } }
+
+/// Activate antialiasing
+///
+/// See [`rdpq_mode_antialias`](libdragon_sys::rdpq_mode_antialias) for details.
+#[inline] pub fn mode_antialias(mode: Antialias) {
+    __mode_change_som(consts::SOM_AA_ENABLE | consts::SOMX_AA_REDUCED,
+        (if mode != Antialias::None { consts::SOM_AA_ENABLE } else { 0 })
+        | (if mode == Antialias::Reduced { consts::SOMX_AA_REDUCED } else { 0 }));
+}
+
+/// Configure the color combiner
+///
+/// See [`rdpq_mode_combiner`](libdragon_sys::rdpq_mode_combiner) for details.
+#[inline] 
+pub fn mode_combiner(comb: Combiner) {
+    let comb: u64 = comb.into();
+
+    if (comb & consts::COMBINER_2PASS) != 0 {
         unsafe {
-            __rdpq_fixup_mode3(libdragon_sys::RDPQ_CMD_MODIFY_OTHER_MODES, 0 | (1 << 15), !((mask >> 32) as u32), (val >> 32) as u32);
+            __rdpq_fixup_mode(CMD_SET_COMBINE_MODE_2PASS, ((comb >> 32) & 0x00FFFFFF) as u32, comb as u32);
+        }
+    } else {
+        let mut comb1_mask = consts::COMB1_MASK;
+        if ((comb >> 0 ) &  7) == 1 { comb1_mask ^= 1u64 << 0;  }
+        if ((comb >> 3 ) &  7) == 1 { comb1_mask ^= 1u64 << 3;  }
+        if ((comb >> 6 ) &  7) == 1 { comb1_mask ^= 1u64 << 6;  }
+        if ((comb >> 18) &  7) == 1 { comb1_mask ^= 1u64 << 18; }
+        if ((comb >> 21) &  7) == 1 { comb1_mask ^= 1u64 << 21; }
+        if ((comb >> 24) &  7) == 1 { comb1_mask ^= 1u64 << 24; }
+        if ((comb >> 32) & 31) == 1 { comb1_mask ^= 1u64 << 32; }
+        if ((comb >> 37) & 15) == 1 { comb1_mask ^= 1u64 << 37; }
+
+        unsafe {
+            __rdpq_fixup_mode4(CMD_SET_COMBINE_MODE_1PASS, ((comb >> 32) & 0x00FFFFFF) as u32, comb as u32,
+                                                           ((comb1_mask >> 32) & 0x00FFFFFF) as u32, comb1_mask as u32);
         }
     }
-
-    if (mask as u32) != 0 {
-        unsafe {
-            __rdpq_fixup_mode3(libdragon_sys::RDPQ_CMD_MODIFY_OTHER_MODES, 4 | (1 << 15), !(mask as u32), val as u32);
-        }
-    }
 }
 
+/// Configure the formula to use for blending.
+///
+/// See [`rdpq_mode_blender`](libdragon_sys::rdpq_mode_blender) for details.
 #[inline]
-pub fn mode_push() {
+pub fn mode_blender(blend: Blender) {
+    let mut blend: u32 = blend.into();
+    if blend != 0 { blend |= consts::SOM_BLENDING as u32; }
     unsafe {
-        libdragon_sys::rdpq_mode_push();
+        __rdpq_fixup_mode(CMD_SET_BLENDING_MODE, 0, blend);
     }
 }
 
-pub fn mode_pop() {
-    unsafe {
-        libdragon_sys::rdpq_mode_pop();
-    }
-}
-
+/// Enable or disable fog
+///
+/// See [`rdpq_mode_fog`](libdragon_sys::rdpq_mode_fog) for details.
 #[inline]
-pub fn mode_filter(filt: Filter) {
-    let filt = Into::<libdragon_sys::rdpq_filter_s>::into(filt) as u64;
-    __mode_change_som(consts::SOM_SAMPLE_MASK, filt << consts::SOM_SAMPLE_SHIFT);
+pub fn mode_fog(fog: Blender) {
+    let mut fog: u32 = fog.into();
+    if fog != 0 { fog |= consts::SOM_BLENDING as u32; }
+    if fog != 0 { assert!((fog & (consts::SOMX_BLEND_2PASS as u32)) == 0, "Fogging cannot be used with two-pass blending formulas"); }
+    __mode_change_som(consts::SOMX_FOG, if fog != 0 { consts::SOMX_FOG } else { 0 });
+    unsafe {
+        __rdpq_fixup_mode(CMD_SET_FOG_MODE, 0, fog);
+    }
 }
 
+/// Change dithering mode
+///
+/// See [`rdpq_mode_filter`](libdragon_sys::rdpq_mode_filter) for details.
+#[inline]
+pub fn mode_dithering(dither: Dither) {
+    let dither: libdragon_sys::rdpq_dither_s = dither.into();
+    __mode_change_som(consts::SOM_RGBDITHER_MASK | consts::SOM_ALPHADITHER_MASK,
+                      (dither as u64) << consts::SOM_ALPHADITHER_SHIFT);
+}
+
+/// Activate alpha compare feature
+///
+/// See [`rdpq_mode_alphacompare`](libdragon_sys::rdpq_mode_alphacompare) for details.
 #[inline]
 pub fn mode_alphacompare(threshold: i32) {
     if threshold == 0 {
@@ -1962,10 +2150,73 @@ pub fn mode_alphacompare(threshold: i32) {
     }
 }
 
+/// Activate z-buffer usage
+///
+/// See [`rdpq_mode_zbuf`](libdragon_sys::rdpq_mode_zbuf) for details.
+#[inline]
+pub fn mode_zbuf(compare: bool, update: bool) {
+    __mode_change_som(consts::SOM_Z_COMPARE | consts::SOM_Z_WRITE,
+        if compare { consts::SOM_Z_COMPARE } else { 0 } |
+        if update  { consts::SOM_Z_WRITE   } else { 0 });
+}
+
+/// Set a fixed override of Z value
+///
+/// See [`rdpq_mode_zoverride`](libdragon_sys::rdpq_mode_zoverride) for details.
+#[inline]
+pub fn mode_zoverride(enable: bool, z: f32, deltaz: i16) {
+    if enable { set_prim_depth_raw((z * (0x7FFF as f32)) as u16, deltaz); }
+    __mode_change_som(consts::SOM_ZSOURCE_PRIM, if enable { consts::SOM_ZSOURCE_PRIM } else { 0 });
+}
+
+/// Activate palette lookup during drawing
+///
+/// See [`rdpq_mode_tlut`](libdragon_sys::rdpq_mode_tlut) for details.
 #[inline]
 pub fn mode_tlut(tlut: Tlut) {
-    __mode_change_som(consts::SOM_TLUT_MASK, (Into::<libdragon_sys::rdpq_tlut_s>::into(tlut) as u64) << consts::SOM_TLUT_SHIFT);
+    let tlut: libdragon_sys::rdpq_tlut_s = tlut.into();
+    __mode_change_som(consts::SOM_TLUT_MASK, (tlut as u64) << consts::SOM_TLUT_SHIFT);
 }
+
+/// Activate texture filtering
+///
+/// See [`rdpq_mode_filter`](libdragon_sys::rdpq_mode_filter) for details.
+#[inline]
+pub fn mode_filter(filt: Filter) {
+    let filt: libdragon_sys::rdpq_filter_s = filt.into();
+    __mode_change_som(consts::SOM_SAMPLE_MASK, (filt as u64) << consts::SOM_SAMPLE_SHIFT);
+}
+
+/// Activate mip-mapping.
+///
+/// See [`rdpq_mode_mipmap`](libdragon_sys::rdpq_mode_mipmap) for details.
+#[inline]
+pub fn mode_mipmap(mode: Mipmap, mut num_levels: usize) {
+    if mode == Mipmap::None { num_levels = 0; }
+    if num_levels != 0 { num_levels -= 1; }
+    let mode: libdragon_sys::rdpq_mipmap_s = mode.into();
+    __mode_change_som(consts::SOM_TEXTURE_LOD | consts::SOMX_LOD_INTERPOLATE |
+                      consts::SOMX_NUMLODS_MASK | consts::SOM_TEXTURE_SHARPEN | 
+                      consts::SOM_TEXTURE_DETAIL, ((mode as u64) << 32) | ((num_levels as u64) << consts::SOMX_NUMLODS_SHIFT));
+}
+
+/// Activate perspective correction for textures
+///
+/// See [`rdpq_mode_persp`](libdragon_sys::rdpq_mode_persp) for details.
+#[inline]
+pub fn mode_persp(perspective: bool) {
+    __mode_change_som(consts::SOM_TEXTURE_PERSP, if perspective { consts::SOM_TEXTURE_PERSP } else { 0 });
+}
+
+/// Start a batch of RDP mode changes
+///
+/// See [`rdpq_mode_begin`](libdragon_sys::rdpq_mode_begin) for details;
+#[inline] pub fn mode_begin() { unsafe { libdragon_sys::rdpq_mode_begin(); } }
+
+/// Finish a batch of RDP mode changes
+///
+/// See [`rdpq_mode_end`](libdragon_sys::rdpq_mode_end) for details;
+#[inline] pub fn mode_end() { unsafe { libdragon_sys::rdpq_mode_end(); } }
 
 // rdpq_paragraph.h
 pub struct ParagraphChar;
