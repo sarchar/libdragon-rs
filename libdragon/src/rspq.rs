@@ -148,15 +148,23 @@ pub fn wait() {
 
 // rspq_constants.h
 const MAX_OVERLAY_COUNT: usize = 8;
-
-// rspq_profile.h
 const PROFILE_SLOT_COUNT: usize = MAX_OVERLAY_COUNT + 6;
 
+// rspq_profile.h
+
+/// Profiling data of a single slot (for example an overlay)
+///
+/// See [`rspq_profile_slot_t`](libdragon_sys::rspq_profile_slot_t) for details.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ProfileSlot {
+    /// The total number of rcp ticks that were spent running in this slot
+    /// See [`rspq_profile_slot_t.total_ticks`](libdragon_sys::rspq_profile_slot_t::total_ticks)
     pub total_ticks : u64,
+    /// The number of individual samples that were recorded
+    /// See [`rspq_profile_slot_t.sample_count`](libdragon_sys::rspq_profile_slot_t::sample_count)
     pub sample_count: u64,
+    #[doc(hidden)]
     name            : *const ::core::ffi::c_char,
 }
 
@@ -170,45 +178,51 @@ impl Default for ProfileSlot {
     }
 }
 
+impl ProfileSlot {
+    /// The name of this slot, if it is used.
+    /// See [`rspq_profile_slot_t.name`](libdragon_sys::rspq_profile_slot_t::name)
+    pub fn name(&self) -> &str {
+        let c_str = unsafe { CStr::from_ptr(self.name) };
+        c_str.to_str().unwrap()
+    }
+}
+
+/// RSPQ Profiling data
+///
+/// See [`rspq_profile_data_t`](libdragon_sys::rspq_profile_data_t) for details.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Default)]
 pub struct ProfileData {
+    /// The list of slots
+    /// See [`rspq_profile_data_t.slots`](libdragon_sys::rspq_profile_data_t::slots)
     pub slots         : [ProfileSlot; PROFILE_SLOT_COUNT],
+    /// The total elapsed rcp ticks since the last reset
+    /// See [`rspq_profile_data_t.total_ticks`](libdragon_sys::rspq_profile_data_t::total_ticks)
     pub total_ticks   : u64,
+    /// The accumulated ticks sampled from DP_BUSY
+    /// See [`rspq_profile_data_t.rdp_busy_ticks`](libdragon_sys::rspq_profile_data_t::rdp_busy_ticks)
     pub rdp_busy_ticks: u64,
+    /// The number of recorded frames since the last reset
+    /// See [`rspq_profile_data_t.frame_count`](libdragon_sys::rspq_profile_data_t::frame_count)
     pub frame_count   : u64,
 }
 
-pub fn profile_start() {
-    unsafe {
-        libdragon_sys::rspq_profile_start();
-    }
-}
+/// Start the rspq profiler. See [`rspq_profile_start`](libdragon_sys::rspq_profile_start).
+pub fn profile_start() { unsafe { libdragon_sys::rspq_profile_start(); } }
 
-pub fn profile_stop() {
-    unsafe {
-        libdragon_sys::rspq_profile_stop();
-    }
-}
+/// Stop the rspq profiler. See [`rspq_profile_stop`](libdragon_sys::rspq_profile_stop).
+pub fn profile_stop() { unsafe { libdragon_sys::rspq_profile_stop(); } }
 
-pub fn profile_reset() {
-    unsafe {
-        libdragon_sys::rspq_profile_reset();
-    }
-}
+/// Reset the rspq profiler and discard any recorded samples. See [`rspq_profile_reset`](libdragon_sys::rspq_profile_reset).
+pub fn profile_reset() { unsafe { libdragon_sys::rspq_profile_reset(); } }
 
-pub fn profile_next_frame() {
-    unsafe {
-        libdragon_sys::rspq_profile_next_frame();
-    }
-}
+/// Mark the start of the next frame to the rspq profiler. See [`rspq_profile_next_frame`](libdragon_sys::rspq_profile_next_frame).
+pub fn profile_next_frame() { unsafe { libdragon_sys::rspq_profile_next_frame(); } }
 
-pub fn profile_dump() {
-    unsafe {
-        libdragon_sys::rspq_profile_dump();
-    }
-}
+/// Dump the recorded data to the console. See [`rspq_profile_dump`](libdragon_sys::rspq_profile_dump).
+pub fn profile_dump() { unsafe { libdragon_sys::rspq_profile_dump(); } }
 
+/// Copy the recorded data. See [`rspq_profile_get_data`](libdragon_sys::rspq_profile_get_data).
 pub fn profile_get_data() -> ProfileData {
     let mut data = Box::new(ProfileData::default());
     unsafe {
