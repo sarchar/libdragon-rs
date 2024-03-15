@@ -24,16 +24,16 @@ struct Object {
 
 const NUM_OBJECTS: usize = 64;
 
-struct App {
-    brew_sprite: Sprite,
-    _tiles_sprite: Sprite,
+struct App<'a> {
+    brew_sprite: Sprite<'a>,
+    _tiles_sprite: Sprite<'a>,
     tiles_block: rspq::Block,
     objects: Vec<Object>,
     num_objects: usize,
     cur_tick: u64,
 }
 
-impl App {
+impl<'a> App<'a> {
     fn new() -> Self {
         let mut rng = Mt64::new(0);
 

@@ -113,7 +113,7 @@ impl<'a> Graphics<'a> {
     // take ownership of sprite and pin its memory in place
     // the caller of this function is required to keep the memory available until the font has been
     // changed to something else, otherwise Bad Things Will Happen
-    pub fn set_font_sprite(&self, sprite: Sprite) -> core::pin::Pin<Box<Sprite>> {
+    pub fn set_font_sprite<'b>(&self, sprite: Sprite<'b>) -> core::pin::Pin<Box<Sprite<'b>>> {
         let pinned = Box::pin(sprite);
         unsafe {
             libdragon_sys::graphics_set_font_sprite(pinned.as_const_sprite_s() as *mut libdragon_sys::sprite_s);

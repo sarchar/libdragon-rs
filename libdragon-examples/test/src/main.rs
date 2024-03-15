@@ -17,7 +17,7 @@ fn read_sprite(filename: &str) -> Sprite {
     if fp.read(buf.as_mut_slice()).unwrap() != size {
         panic!("could not read sprite {}", filename);
     }
-    return Sprite::from_data(buf);
+    return Sprite::from_data_raw(buf);
 }
 
 #[no_mangle]

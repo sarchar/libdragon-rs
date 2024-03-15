@@ -70,7 +70,7 @@ static LIGHT_DIFFUSE: [[f32; 4]; 8] = [
 struct App<'a> {
     camera: Camera,
     zbuffer: Surface<'a>,
-    _sprites: [Sprite; 4],
+    _sprites: [Sprite<'a>; 4],
     textures: [u32; 4],
     texture_index: usize,
     frames: u64,
