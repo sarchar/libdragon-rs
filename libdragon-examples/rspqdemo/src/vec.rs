@@ -15,11 +15,11 @@ impl Vec {
     pub fn new() -> Self {
         define_rsp_ucode!(rsp_vec);
 
-        eprintln!("rsp_vec_code = {:08p}", rsp_vec.rsp_ucode.code);
-        eprintln!("rsp_vec_code_end = {:08p}", rsp_vec.rsp_ucode.code_end);
+        eprintln!("rsp_vec_code = {:08p}", unsafe { rsp_vec.code() });
+        eprintln!("rsp_vec_code_end = {:08p}", unsafe { rsp_vec.code_end() });
 
-        eprintln!("rsp_vec_data = {:08p}", rsp_vec.rsp_ucode.data);
-        eprintln!("rsp_vec_data_end = {:08p}", rsp_vec.rsp_ucode.data_end);
+        eprintln!("rsp_vec_data = {:08p}", unsafe { rsp_vec.data() });
+        eprintln!("rsp_vec_data_end = {:08p}", unsafe { rsp_vec.data_end() });
 
         rspq::init();
     

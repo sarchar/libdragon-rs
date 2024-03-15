@@ -97,14 +97,23 @@ pub const SP_WSTATUS_CLEAR_SIG7       : u32 = libdragon_sys::SP_WSTATUS_CLEAR_SI
 /// SP_STATUS write mask: set SIG7 bit
 pub const SP_WSTATUS_SET_SIG7         : u32 = libdragon_sys::SP_WSTATUS_SET_SIG7         as u32;
 
+/// Snapshot of the registers status of the RSP.
+///
+/// We can use LibDragon's `rsp_snapshot_t` directly
+///
+/// See [`rsp_snapshot_t`](libdragon_sys::rsp_snapshot_t) for details.
+pub type Snapshot = libdragon_sys::rsp_snapshot_t;
+
 /// Wrapper for LibDragon's RSP ucode definition
 ///
-/// See [`rsp_ucode_t`](libdragon_sys::rsp_ucode_t)
+/// See [`rsp_ucode_t`](libdragon_sys::rsp_ucode_t) for details.
 #[derive(Debug,Clone)]
 pub struct RspUcode {
+    /// Don't access this data directly
     #[doc(hidden)]
     pub rsp_ucode : core::pin::Pin<Box<RspUcodeT>>,
-    #[doc(hidden)]
+
+    /// If this ucode has been registered, the overlay ID of the registered ucode
     pub overlay_id: Option<u32>,
 }
 
@@ -153,6 +162,22 @@ impl RspUcode {
     ///
     /// See [`rsp_load`](libdragon_sys::rsp_load) for details.
     pub fn load(&mut self) { unsafe { libdragon_sys::rsp_load(self.rsp_ucode.as_mut().get_mut()); } }
+
+    /// (unsafe) Access `rsp_ucode_t.code`
+    pub unsafe fn code(&mut self) -> *mut u8 { self.rsp_ucode.code }
+    /// (unsafe) Access `rsp_ucode_t.code_end`
+    pub unsafe fn code_end(&mut self) -> *mut ::core::ffi::c_void { self.rsp_ucode.code_end }
+    /// (unsafe) Access `rsp_ucode_t.data`
+    pub unsafe fn data(&mut self) -> *mut u8 { self.rsp_ucode.data }
+    /// (unsafe) Access `rsp_ucode_t.data_end`
+    pub unsafe fn data_end(&mut self) -> *mut ::core::ffi::c_void { self.rsp_ucode.data_end }
+    /// Access `rsp_ucode_t.name`
+    pub fn name(&self) -> &str { 
+        let c_str = unsafe { CStr::from_ptr(self.rsp_ucode.name) };
+        c_str.to_str().unwrap()
+    }
+    /// Access `rsp_ucode_t.start_pc`
+    pub fn start_pc(&self) -> u32 { self.rsp_ucode.start_pc }
 }
 
 /// Initialize the RSP subsystem
@@ -185,7 +210,7 @@ pub fn wait() { unsafe { libdragon_sys::rsp_wait(); } }
 
 /// Do a DMA transfer to load a piece of code into RSP IMEM.
 ///
-/// See [`rsp_load_code`](libdragon_sys::rsp_load_code)
+/// See [`rsp_load_code`](libdragon_sys::rsp_load_code) for details.
 pub fn load_code<T>(code: &mut [T], imem_offset: usize) {
     let sz = code.len() * ::core::mem::size_of::<T>();
     unsafe {
@@ -195,7 +220,7 @@ pub fn load_code<T>(code: &mut [T], imem_offset: usize) {
 
 /// Do a DMA transfer to load a piece of data into RSP DMEM.
 ///
-/// See [`rsp_load_data`](libdragon_sys::rsp_load_data)
+/// See [`rsp_load_data`](libdragon_sys::rsp_load_data) for details.
 pub fn load_data<T>(data: &mut [T], dmem_offset: usize) {
     let sz = data.len() * ::core::mem::size_of::<T>();
     unsafe {
@@ -208,7 +233,7 @@ pub fn load_data<T>(data: &mut [T], dmem_offset: usize) {
 /// Rust-specific: the amount of bytes transfered is the count requested
 /// times the size of an element.
 ///
-/// See [`rsp_read_code`](libdragon_sys::rsp_read_code)
+/// See [`rsp_read_code`](libdragon_sys::rsp_read_code) for details.
 pub fn read_code<T>(count: usize, imem_offset: usize) -> Vec<T> {
     let sz = count * ::core::mem::size_of::<T>();
     let mut res = Vec::with_capacity(sz);
@@ -223,7 +248,7 @@ pub fn read_code<T>(count: usize, imem_offset: usize) -> Vec<T> {
 /// Rust-specific: the amount of bytes transfered is the count requested
 /// times the size of an element.
 ///
-/// See [`rsp_read_data`](libdragon_sys::rsp_read_data)
+/// See [`rsp_read_data`](libdragon_sys::rsp_read_data) for details.
 pub fn read_data<T>(count: usize, dmem_offset: usize) -> Vec<T> {
     let sz = count * ::core::mem::size_of::<T>();
     let mut res = Vec::with_capacity(sz);
