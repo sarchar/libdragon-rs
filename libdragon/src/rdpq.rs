@@ -2375,12 +2375,178 @@ impl<'a> ParagraphBuilder<'a> {
     }
 }
 
+// rdpq_rect.h
+
+extern "C" {
+    fn __rdpq_texture_rectangle_inline(tile: libdragon_sys::rdpq_tile_t,
+                                       x0: ::core::ffi::c_int, y0: ::core::ffi::c_int,
+                                       x1: ::core::ffi::c_int, y1: ::core::ffi::c_int,
+                                       s0: ::core::ffi::c_int, t0: ::core::ffi::c_int);
+    fn __rdpq_texture_rectangle_scaled_inline(tile: libdragon_sys::rdpq_tile_t,
+                                       x0: ::core::ffi::c_int, y0: ::core::ffi::c_int,
+                                       x1: ::core::ffi::c_int, y1: ::core::ffi::c_int,
+                                       s0: ::core::ffi::c_int, t0: ::core::ffi::c_int,
+                                       s1: ::core::ffi::c_int, t1: ::core::ffi::c_int);
+}
+
+// These functions are not part of the public API
+#[inline(always)]
+fn __rdpq_fill_rectangle_inline(mut x0: i32, mut y0: i32, mut x1: i32, mut y1: i32) {
+    use core::cmp::{min, max};
+    x0 = max(x0, 0);
+    y0 = max(y0, 0);
+    x1 = min(x1, 0xFFF);
+    y1 = min(y1, 0xFFF);
+    if x0 >= x1 || y0 >= y1 { return; }
+
+    extern "C" { fn __rdpq_fill_rectangle(w0: u32, w1: u32); }
+    unsafe {
+        __rdpq_fill_rectangle(
+            _carg(x1 as u32, 0xFFF, 12) | _carg(y1 as u32, 0xFFF, 0),
+            _carg(x0 as u32, 0xFFF, 12) | _carg(y0 as u32, 0xFFF, 0));
+    }
+}
+
+
+#[inline(always)]
+fn __rdpq_fill_rectangle_fx(x0: i32, y0: i32, x1: i32, y1: i32) { __rdpq_fill_rectangle_inline(x0, y0, x1, y1); }
+
+#[inline(always)]
+fn __rdpq_texture_rectangle_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32, t: i32) {
+    // Rust TODO: future optimization - rewrite __rdpq_texture_rectangle_inline in Rust, rather than
+    // calling the C version.
+    unsafe { __rdpq_texture_rectangle_inline(tile.0 as libdragon_sys::rdpq_tile_t, x0, y0, x1, y1, s, t); }
+}
+
+#[inline(always)]
+fn __rdpq_texture_rectangle_scaled_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s0: i32, t0: i32, s1: i32, t1: i32) {
+    // Rust TODO: future optimization - rewrite __rdpq_texture_rectangle_scaled_inline in Rust, rather than
+    // calling the C version.
+    unsafe { __rdpq_texture_rectangle_scaled_inline(tile.0 as libdragon_sys::rdpq_tile_t, x0, y0, x1, y1, s0, t0, s1, t1); }
+}
+
+#[inline(always)]
+fn __rdpq_texture_rectangle_raw_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s0: i32, t0: i32, dsdx: i32, dtdy: i32) {
+    extern "C" { fn __rdpq_texture_rectangle(w0: u32, w1: u32, w2: u32, w3: u32); }
+    unsafe {
+        __rdpq_texture_rectangle(
+            _carg(x1 as u32, 0xFFF, 12) | _carg(y1 as u32, 0xFFF, 0),
+            _carg(tile.0 as u32, 0x7, 24) | _carg(x0 as u32, 0xFFF, 12) | _carg(y0 as u32, 0xFFF, 0),
+            _carg(s0 as u32, 0xFFFF, 16) | _carg(t0 as u32, 0xFFFF, 0),
+            _carg(dsdx as u32, 0xFFFF, 16) | _carg(dtdy as u32, 0xFFFF, 0));   
+    }
+}
+
+#[inline(always)]
+fn __rdpq_texture_rectangle_flip_raw_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32, t: i32, dsdy: i32, dtdx: i32) {
+    extern "C" { fn __rdpq_write16_syncuse(_0: u32, _1: u32, _2: u32, _3: u32, _4: u32, _5: u32); }
+    unsafe {
+        __rdpq_write16_syncuse(CMD_TEXTURE_RECTANGLE_FLIP,
+            _carg(x1 as u32, 0xFFF, 12) | _carg(y1 as u32, 0xFFF, 0),
+            _carg(tile.0 as u32, 0x7, 24) | _carg(x0 as u32, 0xFFF, 12) | _carg(y0 as u32, 0xFFF, 0),
+            _carg(s as u32, 0xFFFF, 16) | _carg(t as u32, 0xFFFF, 0),
+            _carg(dsdy as u32, 0xFFFF, 16) | _carg(dtdx as u32, 0xFFFF, 0),
+            libdragon_sys::AUTOSYNC_PIPE | _autosync_tile(tile.0 as u32) | _autosync_tmem(0));
+    }
+}
+
+/// Draw a filled rectangle (RDP command: FILL_RECTANGLE)
+///
+/// Takes any type that can be multiplied by i32 and converted to i32.
+///
+/// See [`rdpq_fill_rectangle`](libdragon_sys::rdpq_fill_rectangle) and `rdpq_rect.h` for details.
+#[inline]
+pub fn fill_rectangle<T>(x0: T, y0: T, x1: T, y1: T)
+    where 
+        T: Into<i32> + From<i32> + core::ops::Mul<Output=T> + Copy {
+    let x0 = Into::<i32>::into(x0 * From::<i32>::from(4));
+    let y0 = Into::<i32>::into(y0 * From::<i32>::from(4));
+    let x1 = Into::<i32>::into(x1 * From::<i32>::from(4));
+    let y1 = Into::<i32>::into(y1 * From::<i32>::from(4));
+    __rdpq_fill_rectangle_fx(x0, y0, x1, y1);
+}
+
+/// Draw a textured rectangle (RDP command: TEXTURE_RECTANGLE)
+///
+/// See [`rdpq_texture_rectangle`](libdragon_sys::rdpq_texture_rectangle) and `rdpq_rect.h` for details.
+#[inline]
+pub fn texture_rectangle<T>(tile: Tile, x0: T, y0: T, x1: T, y1: T, s: i32, t: i32)
+    where 
+        T: Into<i32> + From<i32> + core::ops::Mul<Output=T> + Copy {
+    let x0 = Into::<i32>::into(x0 * From::<i32>::from(4));
+    let y0 = Into::<i32>::into(y0 * From::<i32>::from(4));
+    let x1 = Into::<i32>::into(x1 * From::<i32>::from(4));
+    let y1 = Into::<i32>::into(y1 * From::<i32>::from(4));
+    __rdpq_texture_rectangle_fx(tile, x0, y0, x1, y1, s * 32, t * 32);
+}
+
+/// Draw a textured rectangle with scaling (RDP command: TEXTURE_RECTANGLE)
+///
+/// See [`rdpq_texture_rectangle_scaled`](libdragon_sys::rdpq_texture_rectangle_scaled) and `rdpq_rect.h` for details.
+#[inline]
+pub fn texture_rectangle_scaled<T>(tile: Tile, x0: T, y0: T, x1: T, y1: T, s0: i32, t0: i32, s1: i32, t1: i32)
+    where 
+        T: Into<i32> + From<i32> + core::ops::Mul<Output=T> + Copy {
+    let x0 = Into::<i32>::into(x0 * From::<i32>::from(4));
+    let y0 = Into::<i32>::into(y0 * From::<i32>::from(4));
+    let x1 = Into::<i32>::into(x1 * From::<i32>::from(4));
+    let y1 = Into::<i32>::into(y1 * From::<i32>::from(4));
+    __rdpq_texture_rectangle_scaled_fx(tile, x0, y0, x1, y1, s0 * 32, t0 * 32, s1 * 32, t1 * 32);
+}
+
+/// Draw a textured rectangle with scaling -- raw version (RDP command: TEXTURE_RECTANGLE)
+///
+/// See [`rdpq_texture_rectangle_raw`](libdragon_sys::rdpq_texture_rectangle_raw) and `rdpq_rect.h` for details.
+#[inline]
+pub fn texture_rectangle_raw<T>(tile: Tile, x0: T, y0: T, x1: T, y1: T, s0: i32, t0: i32, dsdx: T, dtdy: T)
+    where 
+        T: Into<i32> + From<i32> + core::ops::Mul<Output=T> + Copy {
+    let x0 = Into::<i32>::into(x0 * From::<i32>::from(4));
+    let y0 = Into::<i32>::into(y0 * From::<i32>::from(4));
+    let x1 = Into::<i32>::into(x1 * From::<i32>::from(4));
+    let y1 = Into::<i32>::into(y1 * From::<i32>::from(4));
+    let dsdx = Into::<i32>::into(dsdx * From::<i32>::from(1024));
+    let dtdy = Into::<i32>::into(dtdy * From::<i32>::from(1024));
+    __rdpq_texture_rectangle_raw_fx(tile, x0, y0, x1, y1, s0 * 32, t0 * 32, dsdx, dtdy);
+}
+
+/// Draw a textured flipped rectangle (RDP command: TEXTURE_RECTANGLE_FLIP)
+///
+/// See [`rdpq_texture_rectangle_flip_raw`](libdragon_sys::rdpq_texture_rectangle_flip_raw) and `rdpq_rect.h` for details.
+#[inline]
+pub fn texture_rectangle_flip_raw<T>(tile: Tile, x0: T, y0: T, x1: T, y1: T, s: i32, t: i32, dsdx: T, dtdy: T)
+    where 
+        T: Into<i32> + From<i32> + core::ops::Mul<Output=T> + Copy {
+    let x0 = Into::<i32>::into(x0 * From::<i32>::from(4));
+    let y0 = Into::<i32>::into(y0 * From::<i32>::from(4));
+    let x1 = Into::<i32>::into(x1 * From::<i32>::from(4));
+    let y1 = Into::<i32>::into(y1 * From::<i32>::from(4));
+    let dsdx = Into::<i32>::into(dsdx * From::<i32>::from(1024));
+    let dtdy = Into::<i32>::into(dtdy * From::<i32>::from(1024));
+    __rdpq_texture_rectangle_flip_raw_fx(tile, x0, y0, x1, y1, s * 32, t * 32, dsdx, dtdy);
+}
+
 // rdpq_sprite.h
-//void rdpq_sprite_blit(sprite_t *sprite, float x0, float y0, const rdpq_blitparms_t *parms);
+
+/// Upload a sprite to TMEM, making it ready for drawing
+///
+/// See [`rdpq_sprite_upload`](libdragon_sys::rdpq_sprite_upload) for details
+#[inline]
+pub fn sprite_upload(tile: Tile, sprite: &Sprite, parms: TexParms) {
+    let parms: libdragon_sys::rdpq_texparms_t = parms.into();
+    unsafe {
+        libdragon_sys::rdpq_sprite_upload(tile.0 as libdragon_sys::rdpq_tile_t, sprite.as_const_sprite_s() as *mut _, &parms);
+    }
+}
+
+/// Blit a sprite to the active framebuffer
+///
+/// See [`rdpq_sprite_blit`](libdragon_sys::rdpq_sprite_blit) for details.
+#[inline]
 pub fn sprite_blit(sprite: &Sprite, x0: f32, y0: f32, parms: BlitParms) {
     let parms: libdragon_sys::rdpq_blitparms_t = parms.into();
     unsafe {
-        libdragon_sys::rdpq_sprite_blit(sprite.as_const_sprite_s() as *mut libdragon_sys::sprite_s, x0, y0, &parms);
+        libdragon_sys::rdpq_sprite_blit(sprite.as_const_sprite_s() as *mut _, x0, y0, &parms);
     }
 }
 
@@ -2479,45 +2645,6 @@ pub fn tex_upload_sub(tile: Tile, tex: &Surface, parms: Option<TexParms>, s0: i3
                                            parms.map_or(::core::ptr::null(), |p| &Into::<libdragon_sys::rdpq_texparms_t>::into(p)) 
                                                     as *const libdragon_sys::rdpq_texparms_t,
                                            s0, t0, s1, t1) as i32
-    }
-}
-
-// rdpq_rect.h
-extern "C" {
-    fn __rdpq_fill_rectangle_offline(x0: ::core::ffi::c_int, 
-                                     y0: ::core::ffi::c_int, 
-                                     x1: ::core::ffi::c_int, 
-                                     y1: ::core::ffi::c_int);
-    fn __rdpq_texture_rectangle_offline(tile: libdragon_sys::rdpq_tile_t,
-                                        x0: ::core::ffi::c_int,
-                                        y0: ::core::ffi::c_int,
-                                        x1: ::core::ffi::c_int,
-                                        y1: ::core::ffi::c_int,
-                                        s0: ::core::ffi::c_int,
-                                        t0: ::core::ffi::c_int);
-}
-
-#[inline(always)]
-pub fn fill_rectangle(x0: i32, y0: i32, x1: i32, y1: i32) {
-    __rdpq_fill_rectangle_fx(x0*4, y0*4, x1*4, y1*4);
-}
-
-#[inline]
-fn __rdpq_fill_rectangle_fx(x0: i32, y0: i32, x1: i32, y1: i32) {
-    unsafe {
-        __rdpq_fill_rectangle_offline(x0, y0, x1, y1);
-    }
-}
-
-#[inline(always)]
-pub fn texture_rectangle(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32, t: i32) {
-    __texture_rectangle_fx(tile, x0*4, y0*4, x1*4, y1*4, s*32, t*32)
-}
-
-#[inline]
-pub fn __texture_rectangle_fx(tile: Tile, x0: i32, y0: i32, x1: i32, y1: i32, s: i32, t: i32) {
-    unsafe {
-        __rdpq_texture_rectangle_offline(tile.0 as libdragon_sys::rdpq_tile_t, x0, y0, x1, y1, s, t);
     }
 }
 
