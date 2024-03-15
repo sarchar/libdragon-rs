@@ -100,7 +100,7 @@ extern "C" {
 ///
 /// See [`rdpq_tile_t`](libdragon_sys::rdpq_tile_t`) for details.
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Tile(pub u32);
 
 /// Tile parameters for [set_tile]. 
@@ -2714,3 +2714,101 @@ pub fn text_print(parms: TextParms, font_id: u8, x0: f32, y0: f32, text: &str) -
     }
 }
 
+// rdpq_tri.h
+
+/// Format descriptor of a triangle.
+///
+/// See [`rdpq_trifmt_t`](libdragon_sys::rdpq_trifmt_t) for details.
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Default)]
+pub struct TriFmt {
+    /// Index of the position component within the vertex array.
+    /// See [`rdpq_trifmt_t.pos_offset`](libdragon_sys::rdpq_trifmt_t::pos_offset)
+    pub pos_offset: i32,
+    /// Index of the shade component witin the vertex arrays.
+    /// See [`rdpq_trifmt_t.shade_offset`](libdragon_sys::rdpq_trifmt_t::shade_offset)
+    pub shade_offset: i32,
+    /// If true, draw the rectangle with flat shading (instead of gouraud shading).
+    /// See [`rdpq_trifmt_t.shade_flat`](libdragon_sys::rdpq_trifmt_t::shade_flat)
+    pub shade_flat: bool,
+    /// Index of the texture component within the vertex arrays.
+    /// See [`rdpq_trifmt_t.tex_offset`](libdragon_sys::rdpq_trifmt_t::tex_offset)
+    pub tex_offset: i32,
+    /// RDP tile descriptor that describes the texture (0-7, see [Tile]).
+    /// See [`rdpq_trifmt_t.tex_tile`](libdragon_sys::rdpq_trifmt_t::tex_tile)
+    pub tex_tile: Tile,
+    /// Number of mipmaps to use for the texture.
+    /// See [`rdpq_trifmt_t.tex_mipmaps`](libdragon_sys::rdpq_trifmt_t::tex_mipmaps)
+    pub tex_mipmaps: i32,
+    /// Index of the depth component within the vertex array.
+    /// See [`rdpq_trifmt_t.z_offset`](libdragon_sys::rdpq_trifmt_t::z_offset)
+    pub z_offset: i32,
+}
+
+/// Format descriptor for a solid-filled triangle.
+///
+/// See [`TRIFMT_FILL`](libdragon_sys::TRIFMT_FILL) for details.
+pub static TRIFMT_FILL: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_FILL) 
+};
+
+/// Format descriptor for a shaded triangle.
+///
+/// See [`TRIFMT_SHADE`](libdragon_sys::TRIFMT_SHADE) for details.
+pub static TRIFMT_SHADE: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_SHADE) 
+};
+
+/// Format descriptor for a textured triangle.
+///
+/// See [`TRIFMT_TEX`](libdragon_sys::TRIFMT_TEX) for details.
+pub static TRIFMT_TEX: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_TEX) 
+};
+
+/// Format descriptor for a shaded, textured triangle.
+///
+/// See [`TRIFMT_SHADE_TEX`](libdragon_sys::TRIFMT_SHADE_TEX) for details.
+pub static TRIFMT_SHADE_TEX: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_SHADE_TEX) 
+};
+
+/// Format descriptor for a solid-filled, z-buffered triangle.
+///
+/// See [`TRIFMT_ZBUF`](libdragon_sys::TRIFMT_ZBUF) for details.
+pub static TRIFMT_ZBUF: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_ZBUF) 
+};
+
+/// Format descriptor for a z-buffered, shaded triangle.
+///
+/// See [`TRIFMT_ZBUF_SHADE`](libdragon_sys::TRIFMT_ZBUF_SHADE) for details.
+pub static TRIFMT_ZBUF_SHADE: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_ZBUF_SHADE) 
+};
+
+/// Format descriptor for a z-buffered, textured triangle.
+///
+/// See [`TRIFMT_ZBUF_TEX`](libdragon_sys::TRIFMT_ZBUF_TEX) for details.
+pub static TRIFMT_ZBUF_TEX: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_ZBUF_TEX) 
+};
+
+/// Format descriptor for a z-buffered, shaded, textured triangle.
+///
+/// See [`TRIFMT_ZBUF_SHADE_TEX`](libdragon_sys::TRIFMT_ZBUF_SHADE_TEX) for details.
+pub static TRIFMT_ZBUF_SHADE_TEX: &TriFmt = unsafe { 
+    &*core::mem::transmute::<*const libdragon_sys::rdpq_trifmt_t, *const TriFmt>(&libdragon_sys::TRIFMT_ZBUF_SHADE_TEX) 
+};
+
+/// Draw a triangle (RDP command: TRI_*)
+///
+/// See [`rdpq_triangle`](libdragon_sys::rdpq_triangle) for details.
+#[inline]
+pub fn triangle(fmt: &TriFmt, v1: &[f32], v2: &[f32], v3: &[f32]) {
+    assert!(v1.len() >= 2 && v2.len() >= 2 && v3.len() >= 2, "vertices must be two components each");
+    unsafe {
+        let ptr = core::mem::transmute(fmt);
+        libdragon_sys::rdpq_triangle(ptr, v1.as_ptr(), v2.as_ptr(), v3.as_ptr());
+    }
+}
