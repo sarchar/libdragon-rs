@@ -917,6 +917,8 @@ pub fn debug_disasm_size(buf: &mut [u64]) -> usize {
 /// Wrapper around [`rdpq_font_t`](libdragon_sys::rdpq_font_s)
 pub struct Font<'a> {
     pub(crate) ptr: *mut libdragon_sys::rdpq_font_t,
+    pub(crate) is_owned: bool,
+    pub(crate) _is_const: bool,
     pub(crate) phantom: core::marker::PhantomData<&'a u8>,
 }
 
@@ -933,6 +935,8 @@ impl<'a> Font<'a> {
         };
         Self {
             ptr: ptr,
+            is_owned: true,
+            _is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -949,6 +953,8 @@ impl<'a> Font<'a> {
         };
         Font {
             ptr: ptr,
+            is_owned: true,
+            _is_const: false,
             phantom: core::marker::PhantomData,
         }
     }
@@ -957,6 +963,7 @@ impl<'a> Font<'a> {
     ///
     /// See [`rdpq_font_style`](libdragon_sys::rdpq_font_style) for details.
     pub fn style(&mut self, id: u8, style: FontStyle) {
+        // TODO is this allowed with const font from `rdpq_text_get_font`?
         unsafe {
             libdragon_sys::rdpq_font_style(self.ptr, id, &Into::<libdragon_sys::rdpq_fontstyle_t>::into(style) as *const libdragon_sys::rdpq_fontstyle_t)
         }
@@ -988,8 +995,10 @@ impl<'a> Drop for Font<'a> {
     ///
     /// See [`rdpq_font_free`](libdragon_sys::rdpq_font_free) for details.
     fn drop(&mut self) {
-        unsafe {
-            libdragon_sys::rdpq_font_free(self.ptr);
+        if self.is_owned {
+            unsafe {
+                libdragon_sys::rdpq_font_free(self.ptr);
+            }
         }
     }
 }
@@ -2322,7 +2331,7 @@ impl<'a> ParagraphBuilder<'a> {
         // text parms have to persist throughout the entire builder
         let parms: libdragon_sys::rdpq_textparms_t = parms.into();
         let pinned = Box::pin(parms);
-        let layout_ptr: *mut libdragon_sys::rdpq_paragraph_t = layout.map_or_else(|| ::core::ptr::null_mut(), |p| p.c);
+        let layout_ptr: *mut libdragon_sys::rdpq_paragraph_t = layout.map_or(::core::ptr::null_mut(), |p| p.c);
         unsafe {
             libdragon_sys::rdpq_paragraph_builder_begin(pinned.as_ref().get_ref() as *const _, initial_font_id, layout_ptr);
         }
@@ -2551,75 +2560,41 @@ pub fn sprite_blit(sprite: &Sprite, x0: f32, y0: f32, parms: BlitParms) {
 }
 
 // rdpq_tex.h
-pub const REPEAT_INFINITE: f32 = 2048.0;
 
+/// Enable mirroring when wrapping the texture, used in [TexParmsST]
+pub const MIRROR_REPEAT: bool = libdragon_sys::MIRROR_REPEAT != 0;
+/// Disable mirroring when wrapping the texture, used in [TexParmsST]
+pub const MIRROR_NONE: bool = libdragon_sys::MIRROR_NONE != 0;
+/// Enable infinite repeat for the texture, used in [TexParmsST].
+pub const REPEAT_INFINITE: f32 = libdragon_sys::REPEAT_INFINITE as f32;
+
+/// Texture sample parameters for [tex_upload].
+///
+/// See [`rdpq_texparms_t`](libdragon_sys::rdpq_texparms_t) for details.
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct BlitParms {
-    pub tile     : Tile,
-    pub s0       : i32,
-    pub t0       : i32,
-    pub width    : i32,
-    pub height   : i32,
-    pub flip_x   : bool,
-    pub flip_y   : bool,
-    pub cx       : i32,
-    pub cy       : i32,
-    pub scale_x  : f32,
-    pub scale_y  : f32,
-    pub theta    : f32,
-    pub filtering: bool,
-    pub nx       : i32,
-    pub ny       : i32,
-}
-
-impl Default for BlitParms {
-    fn default() -> Self {
-        BlitParms {
-            tile     : Tile(0),
-            s0       : 0,
-            t0       : 0,
-            width    : 0,
-            height   : 0,
-            flip_x   : false,
-            flip_y   : false,
-            cx       : 0,
-            cy       : 0,
-            scale_x  : 1.0,
-            scale_y  : 1.0,
-            theta    : 0.0,
-            filtering: false,
-            nx       : 0,
-            ny       : 0,
-        }
-    }
-}
-
-impl Into<libdragon_sys::rdpq_blitparms_s> for BlitParms {
-    fn into(self) -> libdragon_sys::rdpq_blitparms_s {
-        assert!(::core::mem::size_of::<Self>() == ::core::mem::size_of::<libdragon_sys::rdpq_blitparms_s>());
-        unsafe {
-            *::core::mem::transmute::<&Self, *const libdragon_sys::rdpq_blitparms_s>(&self)
-        }
-    }
+#[derive(Debug, Copy, Clone, Default)]
+pub struct TexParms {
+    /// TMEM address where to load the texture (default: 0)
+    pub tmem_addr: i32,
+    /// Palette number where TLUT is stored (used only for CI4 textures)
+    pub palette  : i32,
+    /// S directions of texture parameters
+    pub s        : TexParmsST,
+    /// T directions of texture parameters
+    pub t        : TexParmsST,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Default)]
 pub struct TexParmsST {
+    /// Translation of the texture (in pixels)
     pub translate: f32,
+    /// Power of 2 scale modifier of the texture (defualt: 0). Eg: -2 = make the texture 4 times smaller.
     pub scale_log: i32,
+    /// Number of repetitions before the texture clamps (default: 1). Use [REPEAT_INFINITE] for infinite reptitions (wrapping).
     pub repeats  : f32,
+    /// Repetition mode (default: [MIRROR_NONE]). If true ([MIRROR_REPEAT]), the texture mirrors at each reptition
     pub mirror   : bool,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Default)]
-pub struct TexParms {
-    pub tmem_addr: i32,
-    pub palette  : i32,
-    pub s        : TexParmsST,
-    pub t        : TexParmsST,
 }
 
 impl Into<libdragon_sys::rdpq_texparms_t> for TexParms {
@@ -2632,13 +2607,34 @@ impl Into<libdragon_sys::rdpq_texparms_t> for TexParms {
 }
 
 
-pub type TlutPalette = *mut u16;
-pub fn tex_upload_tlut(tlut: TlutPalette, color_idx: i32, num_colors: i32) {
+/// Multi-pass optimized texture loader.
+///
+/// Not part of the public API yet
+pub struct TexLoader;
+
+impl TexLoader {
+    #[inline] pub fn init(_tile: Tile, _tex: &Surface) -> Self { unimplemented!("net yet available"); }
+    #[inline] pub fn load(&self, _s0: i32, _t0: i32, _s1: i32, _t1: i32) -> i32 { unimplemented!("not yet available"); }
+    #[inline] pub fn set_tmem_addr(&self, _tmem_addr: i32) { unimplemented!("not yet available"); }
+    #[inline] pub fn calc_max_height(&self, _width: i32) { unimplemented!("not yet available"); }
+}
+
+/// Load a texture into TMEM
+///
+/// See [`rdpq_tex_upload`](libdragon_sys::rdpq_tex_upload) for details.
+#[inline]
+pub fn tex_upload(tile: Tile, tex: &Surface, parms: Option<TexParms>) -> i32 {
     unsafe {
-        libdragon_sys::rdpq_tex_upload_tlut(tlut as *mut u16, color_idx, num_colors);
+        libdragon_sys::rdpq_tex_upload(tile.0 as libdragon_sys::rdpq_tile_t, tex.ptr,
+                                       parms.map_or(::core::ptr::null(), |p| &Into::<libdragon_sys::rdpq_texparms_t>::into(p)) 
+                                                as *const libdragon_sys::rdpq_texparms_t)
     }
 }
 
+/// Load a portion of texture into TMEM
+///
+/// See [`rdpq_tex_upload_sub`](libdragon_sys::rdpq_tex_upload_sub) for details.
+#[inline]
 pub fn tex_upload_sub(tile: Tile, tex: &Surface, parms: Option<TexParms>, s0: i32, t0: i32, s1: i32, t1: i32) -> i32 {
     unsafe {
         libdragon_sys::rdpq_tex_upload_sub(tile.0 as libdragon_sys::rdpq_tile_t, tex.ptr,
@@ -2648,51 +2644,207 @@ pub fn tex_upload_sub(tile: Tile, tex: &Surface, parms: Option<TexParms>, s0: i3
     }
 }
 
-// rdpq_text.h
-pub fn text_register_font(id: u8, font: &Font) {
+/// Load one or more palettes into TMEM
+///
+/// See [`rdpq_tex_upload_tlut`](libdragon_sys::rdpq_tex_upload_tlut) for details.
+#[inline]
+pub fn tex_upload_tlut(tlut: TlutPalette, color_idx: i32, num_colors: i32) {
     unsafe {
-        libdragon_sys::rdpq_text_register_font(id, font.ptr);
+        libdragon_sys::rdpq_tex_upload_tlut(tlut as *mut u16, color_idx, num_colors);
     }
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Default)]
-pub enum Align {
-    #[default]
-    Left   = 0,
-    Center = 1,
-    Right  = 2,
+/// TODO Temporary opaque type to cover the palettes returned by `sprite_get_palette`
+pub type TlutPalette<'a> = *mut u16;
+
+/// Reuse a portion of the previously uploaded texture to TMEM
+///
+/// See [`rdpq_tex_reuse_sub`](libdragon_sys::rdpq_tex_reuse_sub) for details.
+#[inline]
+pub fn tex_reuse_sub(tile: Tile, parms: Option<TexParms>, s0: i32, t0: i32, s1: i32, t1: i32) -> i32 {
+    unsafe {
+        libdragon_sys::rdpq_tex_reuse_sub(tile.0 as libdragon_sys::rdpq_tile_t,
+                                          parms.map_or(::core::ptr::null(), |p| &Into::<libdragon_sys::rdpq_texparms_t>::into(p)) 
+                                                   as *const libdragon_sys::rdpq_texparms_t,
+                                          s0, t0, s1, t1) as i32
+    }
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Default)]
-pub enum VAlign {
-    #[default]
-    Top    = 0,
-    Center = 1,
-    Bottom = 2,
+/// Reuse the previously uploaded texture to TMEM
+///
+/// See [`rdpq_tex_reuse`](libdragon_sys::rdpq_tex_reuse) for details.
+#[inline]
+pub fn tex_reuse(tile: Tile, parms: Option<TexParms>) -> i32 {
+    unsafe {
+        libdragon_sys::rdpq_tex_reuse(tile.0 as libdragon_sys::rdpq_tile_t,
+                                      parms.map_or(::core::ptr::null(), |p| &Into::<libdragon_sys::rdpq_texparms_t>::into(p)) 
+                                               as *const libdragon_sys::rdpq_texparms_t)
+    }
 }
 
+/// Begin a multi-texture upload
+///
+/// See [`rdpq_tex_multi_begin`](libdragon_sys::rdpq_tex_multi_begin) for details
+#[inline]
+pub fn tex_multi_begin() { unsafe { libdragon_sys::rdpq_tex_multi_begin(); } }
+
+/// Finish a multi-texture upload
+///
+/// See [`rdpq_tex_multi_end`](libdragon_sys::rdpq_tex_multi_end) for details
+#[inline]
+pub fn tex_multi_end() { unsafe { libdragon_sys::rdpq_tex_multi_end(); } }
+
+/// Blitting parameters for [tex_blit]
+///
+/// See [`rdpq_blitparms_t](libdragon_sys::rdpq_blitparms_t) for details.
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Default)]
+pub struct BlitParms {
+    /// Base tile descriptor to use (default: [Tile](0)); notice that two tiles will often be used to do the upload (tile and tile+1).
+    /// See [`rdpq_blitparms_t.tile`](libdragon_sys::rdpq_blitparms_t::tile)
+    pub tile     : Tile,
+    /// Source sub-rect top-left X coordinate
+    /// See [`rdpq_blitparms_t.s0`](libdragon_sys::rdpq_blitparms_t::s0)
+    pub s0       : i32,
+    /// Source sub-rect top-left Y coordinate
+    /// See [`rdpq_blitparms_t.t0`](libdragon_sys::rdpq_blitparms_t::t0)
+    pub t0       : i32,
+    /// Source sub-rect width. If 0, the width of the surface is used
+    /// See [`rdpq_blitparms_t.width`](libdragon_sys::rdpq_blitparms_t::width)
+    pub width    : i32,
+    /// Source sub-rect height. If 0, the height of the surface is used
+    /// See [`rdpq_blitparms_t.height`](libdragon_sys::rdpq_blitparms_t::height)
+    pub height   : i32,
+    /// Flip horizontally. If true, the source sub-rect is treated as horizontally flipped (so flipping is performed before all other transformations)
+    /// See [`rdpq_blitparms_t.flip_x`](libdragon_sys::rdpq_blitparms_t::flip_x)
+    pub flip_x   : bool,
+    /// Flip vertically. If true, the source sub-rect is treated as vertically flipped (so flipping is performed before all other transformations)
+    /// See [`rdpq_blitparms_t.flip_y`](libdragon_sys::rdpq_blitparms_t::flip_y)
+    pub flip_y   : bool,
+    /// Transformation center (aka "hotspot") X coordinate, relative to (s0, t0). Used for all transformations
+    /// See [`rdpq_blitparms_t.cx`](libdragon_sys::rdpq_blitparms_t::cx)
+    pub cx       : i32,
+    /// Transformation center (aka "hotspot") X coordinate, relative to (s0, t0). Used for all transformations
+    /// See [`rdpq_blitparms_t.cy`](libdragon_sys::rdpq_blitparms_t::cy)
+    pub cy       : i32,
+    /// Horizontal scale factor to apply to the surface. If 0, no scaling is performed (the same as 1.0f)
+    /// See [`rdpq_blitparms_t.scale_x`](libdragon_sys::rdpq_blitparms_t::scale_x)
+    pub scale_x  : f32,
+    /// Vertical scale factor to apply to the surface. If 0, no scaling is performed (the same as 1.0f)
+    /// See [`rdpq_blitparms_t.scale_y`](libdragon_sys::rdpq_blitparms_t::scale_y)
+    pub scale_y  : f32,
+    /// Rotation angle in radians
+    /// See [`rdpq_blitparms_t.theta`](libdragon_sys::rdpq_blitparms_t::theta)
+    pub theta    : f32,
+    /// True if texture filtering is enabled (activates workaround for filtering artifacts when splitting textures in chunks)
+    /// See [`rdpq_blitparms_t.filtering`](libdragon_sys::rdpq_blitparms_t::filtering)
+    pub filtering: bool,
+    /// Texture horizontal repeat count. If 0, no repetition is performed (the same as 1)
+    /// See [`rdpq_blitparms_t.nx`](libdragon_sys::rdpq_blitparms_t::nx)
+    pub nx       : i32,
+    /// Texture vertical repeat count. If 0, no repetition is performed (the same as 1)
+    /// See [`rdpq_blitparms_t.ny`](libdragon_sys::rdpq_blitparms_t::ny)
+    pub ny       : i32,
+}
+
+impl Into<libdragon_sys::rdpq_blitparms_s> for BlitParms {
+    fn into(self) -> libdragon_sys::rdpq_blitparms_s {
+        assert!(::core::mem::size_of::<Self>() == ::core::mem::size_of::<libdragon_sys::rdpq_blitparms_s>());
+        unsafe {
+            *::core::mem::transmute::<&Self, *const libdragon_sys::rdpq_blitparms_s>(&self)
+        }
+    }
+}
+
+/// Blit a surface to the active framebuffer
+///
+/// See [`rdpq_tex_blit`](libdragon_sys::rdpq_tex_blit) for details.
+#[inline]
+pub fn tex_blit(surf: &Surface, x0: f32, y0: f32, parms: BlitParms) {
+    let parms: libdragon_sys::rdpq_blitparms_t = parms.into();
+    unsafe {
+        libdragon_sys::rdpq_tex_blit(surf.ptr as *const _, x0, y0, &parms);
+    }
+}
+
+// rdpq_text.h
+
+/// Print formatting parameters: wrapping modes
+///
+/// See [`rdpq_textwrap_t`](libdragon_sys::rdpq_textwrap_t) for details.
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
 pub enum TextWrap {
+    /// Truncate the text (if any)
     #[default]
     None = 0,
+    /// Truncate the text adding elipsis (if any)
     Ellipses = 1,
+    /// Wrap at character boundaries
     Char = 2,
+    /// Wrap at word boundaries
     Word = 3,
 }
 
+/// Print formatting parameters: horizontal alignment
+///
+/// See [`rdpq_align_t`](libdragon_sys::rdpq_align_t) for details.
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub enum Align {
+    /// Left alignment
+    #[default]
+    Left   = 0,
+    /// Center alignment
+    Center = 1,
+    /// Right alignment
+    Right  = 2,
+}
+
+/// Print formatting parameters: vertical alignment
+///
+/// See [`rdpq_align_t`](libdragon_sys::rdpq_valign_t) for details.
+#[repr(C)]
+#[derive(Copy, Clone, Default)]
+pub enum VAlign {
+    /// Top alignment
+    #[default]
+    Top    = 0,
+    /// Center alignment
+    Center = 1,
+    /// Bottom alignment
+    Bottom = 2,
+}
+
+/// Print formatting parameters
+///
+/// See [`rdpq_textparms_t`](libdragon_sys::rdpq_textparms_t) for details.
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
 pub struct TextParms {
+    /// Maximum horizontal width of the paragraph, in pixels (0 if unbounded)
+    /// See [`rdpq_textparms_t.width`](libdragon_sys::rdpq_textparms_t::width)
     pub width       : i16,
+    /// Maximum vertical height of the paragraph, in pixels (0 if unbounded)
+    /// See [`rdpq_textparms_t.height`](libdragon_sys::rdpq_textparms_t::height)
     pub height      : i16,
+    /// Horizontal alignment (0=left, 1=center, 2=right)
+    /// See [`rdpq_textparms_t.align`](libdragon_sys::rdpq_textparms_t::align)
     pub align       : Align,
+    /// Vertical alignment (0=top, 1=center, 2=bottom)
+    /// See [`rdpq_textparms_t.valign`](libdragon_sys::rdpq_textparms_t::valign)
     pub valign      : VAlign,
+    /// Indentation of the first line, in pixels (only valid for left alignment)
+    /// See [`rdpq_textparms_t.indent`](libdragon_sys::rdpq_textparms_t::indent)
     pub indent      : i16,
+    /// Extra spacing between chars (in addition to glyph width and kerning)
+    /// See [`rdpq_textparms_t.char_spacing`](libdragon_sys::rdpq_textparms_t::char_spacing)
     pub char_spacing: i16,
+    /// Extra spacing between lines (in addition to font height)
+    /// See [`rdpq_textparms_t.line_spacing`](libdragon_sys::rdpq_textparms_t::line_spacing)
     pub line_spacing: i16,
+    /// Wrap mode
+    /// See [`rdpq_textparms_t.wrap`](libdragon_sys::rdpq_textparms_t::wrap)
     pub wrap        : TextWrap,
 }
 
@@ -2704,6 +2856,36 @@ impl Into<libdragon_sys::rdpq_textparms_t> for TextParms {
     }
 }
 
+/// Register a new font into the text engine
+///
+/// See [`rdpq_text_register_font`](libdragon_sys::rdpq_text_register_font) for details.
+#[inline]
+pub fn text_register_font(id: u8, font: &Font) {
+    unsafe {
+        libdragon_sys::rdpq_text_register_font(id, font.ptr);
+    }
+}
+
+/// Get a registered font by its ID
+///
+/// See [`rdpq_text_get_font`](libdragon_sys::rdpq_text_get_font) for details.
+#[inline]
+pub fn text_get_font<'a>(font_id: u8) -> Font<'a> {
+    let ptr = unsafe {
+        libdragon_sys::rdpq_text_get_font(font_id) as *mut _
+    };
+    Font {
+        ptr: ptr,
+        is_owned: false,
+        _is_const: true,
+        phantom: core::marker::PhantomData,
+    }
+}
+
+/// Layout and render a text in a single cell.
+///
+/// See [`rdpq_text_print`](libdragon_sys::rdpq_text_print) for details.
+#[inline]
 pub fn text_print(parms: TextParms, font_id: u8, x0: f32, y0: f32, text: &str) -> i32 {
     let ctext = CString::new(text).unwrap();
     let len = ctext.to_bytes().len(); // does not contain any trailing \0
