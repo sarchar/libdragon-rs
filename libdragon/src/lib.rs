@@ -41,6 +41,8 @@ pub mod debug;
 pub mod dfs;
 /// Display subsystem
 pub mod display;
+/// DMA controller
+pub mod dma;
 /// OpenGL support
 pub mod gl;
 /// GLU helper functions
