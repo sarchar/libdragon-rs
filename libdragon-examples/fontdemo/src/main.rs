@@ -72,12 +72,12 @@ extern "C" fn main() -> ! {
             ..Default::default()
         }, FONT_PACIFICO, ((320-box_width)/2) as f32, ((240-box_height)/2) as f32, TEXT);
 
-        disable_interrupts();
+        interrupts::disable();
         let t0 = timer::ticks();
         //...
         let nbytes = 0;
         let t1 = timer::ticks();
-        enable_interrupts();
+        interrupts::enable();
 
         eprintln!("rdpq::text_print: {} us ({}x{}) - {} bytes\n", timer::micros(t1-t0), box_width, box_height, nbytes);
 

@@ -73,10 +73,10 @@ pub const PI_STATUS   : Register<u32> = Register { address: 0xA460_0010 as *mut 
 /// Rust: Length of the transfer is the slice length times the element size
 ///
 /// See [`dma_read`](libdragon_sys::dma_read) for details.
-#[inline] pub fn read<T>(ram_address: &[T], pi_address: u32) {
+#[inline] pub fn read<T>(ram_address: &mut [T], pi_address: u32) {
     let len = ram_address.len() * ::core::mem::size_of::<T>();
     unsafe {
-        libdragon_sys::dma_read(ram_address.as_ptr() as *const _, pi_address, len as u32);
+        libdragon_sys::dma_read(ram_address.as_ptr() as *mut _, pi_address, len as u32);
     }
 }
 

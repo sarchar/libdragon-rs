@@ -29,7 +29,7 @@ pub fn ticks() -> u64 {
 
 /// Calculate microseconds based on timer ticks
 pub fn micros(ticks: u64) -> u64 {
-    (ticks * 1000000) / ticks_per_second()
+    (ticks * 1000000) / (ticks::per_second() as u64)
 }
 
 /// Timer mode.
@@ -58,13 +58,8 @@ impl Into<::core::ffi::c_int> for Mode {
 }
 
 #[inline(always)]
-pub fn ticks_per_second() -> u64 {
-    cpu_frequency() / 2
-}
-
-#[inline(always)]
 pub fn make_ticks(us: u64) -> i32 {
-    ((us * ticks_per_second()) / 1000000) as i32
+    ((us * (ticks::per_second() as u64)) / 1000000) as i32
 }
 
 struct TimerCallback {

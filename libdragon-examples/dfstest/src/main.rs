@@ -196,10 +196,10 @@ extern "C" fn main() -> ! {
                                     println!("{}", line);
                                     console::render();
 
-                                    wait_ms(100);
+                                    ticks::wait_ms(100);
                                     joypad::poll();
                                     while !joy1.get_buttons().a {
-                                        wait_ms(10);
+                                        ticks::wait_ms(10);
                                         joypad::poll();
                                     }
                                 }
@@ -217,7 +217,7 @@ extern "C" fn main() -> ! {
             console::render();
             joypad::poll();
             while !joy1.get_buttons().b {
-                wait_ms(10);
+                ticks::wait_ms(10);
                 joypad::poll();
             }
 
