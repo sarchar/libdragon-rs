@@ -67,6 +67,8 @@ pub mod rdpq;
 pub mod rsp;
 /// RSPQ module
 pub mod rspq;
+/// RTC Subsystem
+pub mod rtc;
 /// Sprites (2D renderable objects)
 pub mod sprite;
 /// Surface buffers used to draw images
