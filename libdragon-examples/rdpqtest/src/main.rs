@@ -58,7 +58,7 @@ impl<'a> App<'a> {
         let tiles_sprite = Sprite::load(DfsPathBuf::from("rom:/tiles.sprite")).unwrap();
 
         // Create a block for the background, so that we can replay it later.
-        rspq::block_begin();
+        rspq::Block::begin();
 
         // Check if the sprite was compiled with a paletted format. Normally
         // we should know this beforehand, but for this demo we pretend we don't
@@ -93,7 +93,7 @@ impl<'a> App<'a> {
         }
 
         if tlut { rdpq::mode_pop(); }
-        let tiles_block = rspq::block_end();
+        let tiles_block = rspq::Block::end();
 
         Self {
             brew_sprite: brew_sprite,

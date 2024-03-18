@@ -82,13 +82,13 @@ extern "C" fn main() -> ! {
     // in slots 0-15 with the matrix in slots 30-31.
     // It is repeatedly called further down to transform an array of vectors with
     // different matrices.
-    rspq::block_begin();
+    rspq::Block::begin();
     vec.load(0, input_vectors);
     for i in 0..NUM_VECTOR_SLOTS {
         vec.transform(i, MTX_SLOT, i);
     }
     vec.store(output_vectors, 0);
-    let transform_vectors_block = rspq::block_end(); 
+    let transform_vectors_block = rspq::Block::end(); 
 
     // Print inputs first for reference
     println!("Input vectors:");

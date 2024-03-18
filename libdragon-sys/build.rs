@@ -196,7 +196,6 @@ async fn main() -> Result<()> {
     //           .arg(format!("-ffile-prefix-map={}=", out_dir.clone().display()))
     //           .arg("-DN64").arg("-Wall").arg("-std=gnu99")
     //           .arg("-O2")
-    //           .arg("-flto=n")
     //           .arg("-c")
     //           .arg("-o")
     //           .arg(&static_fns_obj_path)
