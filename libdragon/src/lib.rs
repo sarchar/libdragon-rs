@@ -57,6 +57,8 @@ pub mod graphics;
 pub mod joybus;
 /// Input support
 pub mod joypad;
+/// Model64 support
+pub mod model64;
 /// Direct RDP commands
 pub mod rdp;
 /// RDPQ module
