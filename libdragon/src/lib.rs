@@ -49,6 +49,8 @@ pub mod gl;
 pub mod glu;
 /// Graphics (lines, text, etc.)
 pub mod graphics;
+/// Joybus Subsystem
+pub mod joybus;
 /// Input support
 pub mod joypad;
 /// Direct RDP commands
@@ -73,6 +75,7 @@ pub enum LibDragonError {
     DfsError { error: dfs::DfsError },
     ErrnoError { errno: u32 },
     Utf8Error { error: core::str::Utf8Error },
+    AccessoryIoError { error: joybus::AccessoryIoStatus },
 }
 
 impl From<core::str::Utf8Error> for LibDragonError {
