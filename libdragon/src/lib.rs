@@ -35,6 +35,10 @@ pub mod asset;
 pub mod audio;
 /// Console emulator
 pub mod console;
+/// COP0 interface
+pub mod cop0;
+/// COP1 interface
+pub mod cop1;
 /// Debugging Support
 pub mod debug;
 /// Dragon Filesystem
@@ -374,7 +378,7 @@ pub mod ticks {
     /// Returns the 32-bit hardware tick counter
     /// 
     /// See [`TICKS_READ`](libdragon_sys::TICKS_READ) for details.
-    #[inline(always)] pub fn read() -> u32 { /*cop0::count()*/0 }
+    #[inline(always)] pub fn read() -> u32 { crate::cop0::count() }
 
     /// Number of updates to the count register per second
     ///
@@ -600,22 +604,67 @@ impl From<u32> for ResetType {
 /// Read a 8-bit value from memory at the given 64-bit virtual address
 ///
 /// See [`mem_read8`](libdragon_sys::mem_read8) for details
-#[inline] pub unsafe fn mem_read8(vaddr: u64) -> u8 { (vaddr as *const u8).read_volatile() }
+#[inline] pub unsafe fn mem_read8(vaddr: u64) -> u8 { 
+    let r;
+    unsafe {
+        asm!("dsll32 {w1}, {w1}, 0",
+             "or {w0}, {w0}, {w1}",
+             "lbu {value}, 0({w0})",
+             w0 = in(reg) vaddr as u32,
+             w1 = in(reg) (vaddr >> 32) as u32,
+             value = out(reg) r);
+    }
+    r
+}
 
 /// Read a 16-bit value from memory at the given 64-bit virtual address
 ///
 /// See [`mem_read16`](libdragon_sys::mem_read16) for details
-#[inline] pub unsafe fn mem_read16(vaddr: u64) -> u16 { (vaddr as *const u16).read_volatile() }
+#[inline] pub unsafe fn mem_read16(vaddr: u64) -> u16 { 
+    let r;
+    unsafe {
+        asm!("dsll32 {w1}, {w1}, 0",
+             "or {w0}, {w0}, {w1}",
+             "lhu {value}, 0({w0})",
+             w0 = in(reg) vaddr as u32,
+             w1 = in(reg) (vaddr >> 32) as u32,
+             value = out(reg) r);
+    }
+    r
+}
 
 /// Read a 32-bit value from memory at the given 64-bit virtual address
 ///
 /// See [`mem_read32`](libdragon_sys::mem_read32) for details
-#[inline] pub unsafe fn mem_read32(vaddr: u64) -> u32 { (vaddr as *const u32).read_volatile() }
+#[inline] pub unsafe fn mem_read32(vaddr: u64) -> u32 { 
+    let r;
+    unsafe {
+        asm!("dsll32 {w1}, {w1}, 0",
+             "or {w0}, {w0}, {w1}",
+             "lwu {value}, 0({w0})",
+             w0 = in(reg) vaddr as u32,
+             w1 = in(reg) (vaddr >> 32) as u32,
+             value = out(reg) r);
+    }
+    r
+}
 
 /// Read a 64-bit value from memory at the given 64-bit virtual address
 ///
 /// See [`mem_read64`](libdragon_sys::mem_read64) for details
-#[inline] pub unsafe fn mem_read64(vaddr: u64) -> u64 { (vaddr as *const u64).read_volatile() }
+#[inline] pub unsafe fn mem_read64(vaddr: u64) -> u64 { 
+    let mut w0 = vaddr as u32;
+    let mut w1 = (vaddr >> 32) as u32;
+    unsafe {
+        asm!("dsll32 {w1}, {w1}, 0",
+             "or {w0}, {w0}, {w1}",
+             "ld {w1}, 0({w0})",
+             "dsrl32 {w0}, {w1}, 0",
+             w0 = inout(reg) w0,
+             w1 = inout(reg) w1);
+    }
+    (w1 as u64) | ((w0 as u64) << 32)
+}
 
 /// Interrupt Controller
 pub mod interrupts {
