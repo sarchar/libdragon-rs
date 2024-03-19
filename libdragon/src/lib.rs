@@ -47,6 +47,8 @@ pub mod dfs;
 pub mod display;
 /// DMA controller
 pub mod dma;
+/// Management of EEPROM for saves
+pub mod eeprom;
 /// OpenGL support
 pub mod gl;
 /// GLU helper functions
