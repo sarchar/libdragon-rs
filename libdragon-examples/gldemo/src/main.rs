@@ -70,7 +70,7 @@ static LIGHT_DIFFUSE: [[f32; 4]; 8] = [
 struct App<'a> {
     camera: Camera,
     zbuffer: Surface<'a>,
-    _sprites: [Sprite<'a>; 4],
+    sprites: [Sprite<'a>; 4],
     textures: [u32; 4],
     texture_index: usize,
     frames: u64,
@@ -164,7 +164,7 @@ impl<'a> App<'a> {
                 rotation: 0.0,
             },
             zbuffer: zbuffer,
-            _sprites: sprites, // can't let sprites memory be dropped, as they contain the texture data
+            sprites: sprites, // can't let sprites memory be dropped, as they contain the texture data
             textures: textures,
             texture_index: 0,
             frames: 0,
@@ -222,6 +222,41 @@ impl<'a> App<'a> {
         gl::Disable(gl::TEXTURE_2D);
         gl::Disable(gl::LIGHTING);
         self.prim_test.render(rotation);
+
+        // Draw a primitive with GL_RDPQ_TEXTURING_N64
+        gl::Enable(gl::RDPQ_TEXTURING_N64);
+        gl::Enable(gl::RDPQ_MATERIAL_N64);
+
+        // When rendering with GL_RDPQ_TEXTURING_N64 we need to manualy specify the
+        // tile size and if a 0.5 offset should be used since the ucode itself cannot
+        // determine these. Here we set the tile size to be 32x32 and we apply an offset
+        // since we are using bilinear texture filtering
+        gl::TexSizeN64(32, 32);
+        rdpq::sprite_upload(rdpq::Tile(0), &self.sprites[0], rdpq::TexParms {
+            s: rdpq::TexParmsST { repeats: rdpq::REPEAT_INFINITE, ..Default::default() },
+            t: rdpq::TexParmsST { repeats: rdpq::REPEAT_INFINITE, ..Default::default() },
+            ..Default::default()
+        });
+        rdpq::set_mode_standard();
+        rdpq::mode_filter(rdpq::Filter::Bilinear);
+
+        gl::Begin(gl::TRIANGLE_FAN);
+            gl::TexCoord2f(0.0, 0.0);
+            gl::Vertex3f(-5.5, 1.0, -1.0);
+
+            gl::TexCoord2f(0.0, 1.0);
+            gl::Vertex3f(-5.5, 1.0, 1.0);
+
+            gl::TexCoord2f(1.0, 1.0);
+            gl::Vertex3f(-3.5, 1.0, 1.0);
+
+            gl::TexCoord2f(1.0, 0.0);
+            gl::Vertex3f(-3.5, 1.0, -1.0);
+        gl::End();
+
+        gl::Disable(gl::RDPQ_TEXTURING_N64);
+        gl::Disable(gl::RDPQ_MATERIAL_N64);
+
 
         gl::context_end();
 

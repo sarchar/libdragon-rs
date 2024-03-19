@@ -1104,6 +1104,9 @@ pub fn TexEnvfv(target: i32, pname: i32, params: &[f32]) { unsafe { libdragon_sy
 pub fn IsTexture(texture: u32) -> bool { unsafe { libdragon_sys::glIsTexture(texture) != 0 } }
 
 #[inline(always)]
+pub fn TexSizeN64(width: u16, height: u16) { unsafe { libdragon_sys::glTexSizeN64(width, height); } }
+
+#[inline(always)]
 pub fn Fogi(pname: i32, param: i32) { unsafe { libdragon_sys::glFogi(pname as u32, param) } }
 #[inline(always)]
 pub fn Fogf(pname: i32, param: f32) { unsafe { libdragon_sys::glFogf(pname as u32, param) } }

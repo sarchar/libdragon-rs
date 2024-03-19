@@ -349,15 +349,18 @@ pub mod consts {
 
     /// Size of the RSPQ DMEM buffer (in bytes)
     pub const DMEM_BUFFER_SIZE: usize = libdragon_sys::RSPQ_DMEM_BUFFER_SIZE as usize;
-    /// Number of overlay IDs (0-F)
-    pub const OVERLAY_TABLE_SIZE: usize = libdragon_sys::RSPQ_OVERLAY_TABLE_SIZE as usize;
-    /// Size of a single overlay descriptor
-    pub const OVERLAY_DESC_SIZE: usize = libdragon_sys::RSPQ_OVERLAY_DESC_SIZE as usize;
 
-    /// Maximum number of overlays that can be registered (affects DMEM table size)
-    pub const MAX_OVERLAY_COUNT: usize = libdragon_sys::RSPQ_MAX_OVERLAY_COUNT as usize as usize;
-    pub const OVERLAY_ID_COUNT: usize = libdragon_sys::RSPQ_OVERLAY_ID_COUNT as usize;
+    /// Number of overlay ID bits (0-F)
+    pub const RSPQ_OVERLAY_ID_BITS: usize = libdragon_sys::RSPQ_OVERLAY_ID_BITS as usize;
+    /// Number of overlay command bits
+    pub const OVERLAY_CMD_BITS: usize = libdragon_sys::RSPQ_OVERLAY_CMD_BITS as usize;
+    /// Maximum number of overlays that can be registered
+    pub const MAX_OVERLAYS: usize = libdragon_sys::RSPQ_MAX_OVERLAYS as usize;
+
     pub const MAX_OVERLAY_COMMAND_COUNT: usize = libdragon_sys::RSPQ_MAX_OVERLAY_COMMAND_COUNT as usize;
+
+    /// Internal overlay header size in bytes
+    pub const OVERLAY_HEADER_SIZE: usize = libdragon_sys::RSPQ_OVERLAY_HEADER_SIZE as usize;
 
     /// Minimum / maximum size of a block's chunk (contiguous memory buffer)
     pub const BLOCK_MIN_SIZE: usize = libdragon_sys::RSPQ_BLOCK_MIN_SIZE as usize;
@@ -411,8 +414,7 @@ pub mod consts {
     /// The requested command is not defined in the overlay
     pub const ASSERT_INVALID_COMMAND: u32 = libdragon_sys::ASSERT_INVALID_COMMAND;
 
-    /// Debug marker in DMEM to check that C and Assembly have the same DMEM layout
-    pub const DEBUG_MARKER: u32 = libdragon_sys::RSPQ_DEBUG_MARKER;
+    pub const PROFILE_OVERLAY_COUNT: usize = libdragon_sys::RSPQ_PROFILE_OVERLAY_COUNT as usize;
 
     pub const PROFILE_SLOT_SIZE: usize = libdragon_sys::RSPQ_PROFILE_SLOT_SIZE as usize;
     pub const PROFILE_SLOT_COUNT: usize = libdragon_sys::RSPQ_PROFILE_SLOT_COUNT as usize;
