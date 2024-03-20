@@ -49,6 +49,8 @@ pub mod display;
 pub mod dma;
 /// Management of EEPROM for saves
 pub mod eeprom;
+/// EEPROM filesystem support
+pub mod eepromfs;
 /// OpenGL support
 pub mod gl;
 /// GLU helper functions
@@ -94,6 +96,7 @@ pub enum LibDragonError {
     Utf8Error { error: core::str::Utf8Error },
     AccessoryIoError { error: joybus::AccessoryIoStatus },
     MemPakError { code: i32 },
+    EepfsError { error: eepromfs::EepfsError },
 }
 
 impl From<core::str::Utf8Error> for LibDragonError {
