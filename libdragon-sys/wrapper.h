@@ -8,3 +8,4 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/gl_integration.h>
+#include <usb.h>

@@ -87,6 +87,8 @@ pub mod surface;
 pub mod timer;
 /// Throttling engine
 pub mod throttle;
+/// USB support
+pub mod usb;
 
 // Always include the Port traits
 #[doc(hidden)]
@@ -98,12 +100,13 @@ pub use joybus::JoybusGetter;
 
 #[derive(Debug)]
 pub enum LibDragonError {
-    DfsError { error: dfs::DfsError },
-    ErrnoError { errno: u32 },
-    Utf8Error { error: core::str::Utf8Error },
     AccessoryIoError { error: joybus::AccessoryIoStatus },
-    MemPakError { code: i32 },
+    DfsError { error: dfs::DfsError },
     EepfsError { error: eepromfs::EepfsError },
+    ErrnoError { errno: u32 },
+    MemPakError { code: i32 },
+    UsbError { code: i8 },
+    Utf8Error { error: core::str::Utf8Error },
 }
 
 impl From<core::str::Utf8Error> for LibDragonError {
