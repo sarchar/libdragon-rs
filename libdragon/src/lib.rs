@@ -65,6 +65,8 @@ pub mod joypad;
 pub mod mempak;
 /// Model64 support
 pub mod model64;
+/// MPEG2 support
+pub mod mpeg2;
 /// Direct RDP commands
 pub mod rdp;
 /// RDPQ module
