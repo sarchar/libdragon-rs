@@ -33,6 +33,8 @@ mod panic;
 pub mod asset;
 /// Audio - mixer, wav64, etc.
 pub mod audio;
+/// Backtrace (call stack) support
+pub mod backtrace;
 /// Console emulator
 pub mod console;
 /// COP0 interface
