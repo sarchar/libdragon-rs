@@ -89,6 +89,8 @@ pub mod timer;
 pub mod throttle;
 /// USB support
 pub mod usb;
+/// YUV conversion library
+pub mod yuv;
 
 // Always include the Port traits
 #[doc(hidden)]

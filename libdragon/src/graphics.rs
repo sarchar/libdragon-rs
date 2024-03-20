@@ -60,6 +60,10 @@ impl Into<libdragon_sys::color_t> for Color {
     }
 }
 
+impl Default for Color {
+    fn default() -> Self { Color::from_packed32(0x0000_00FF) }
+}
+
 extern "C" {
     fn graphics_convert_color_r(color: *const libdragon_sys::color_t) -> u32;
 }
