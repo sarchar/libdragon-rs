@@ -51,6 +51,8 @@ pub mod dma;
 pub mod eeprom;
 /// EEPROM filesystem support
 pub mod eepromfs;
+/// Exception handling
+pub mod exception;
 /// OpenGL support
 pub mod gl;
 /// GLU helper functions
@@ -87,8 +89,11 @@ pub mod timer;
 pub mod throttle;
 
 // Always include the Port traits
+#[doc(hidden)]
 pub use mempak::MemPakGetter;
+#[doc(hidden)]
 pub use joybus::AccessoryGetter;
+#[doc(hidden)]
 pub use joybus::JoybusGetter;
 
 #[derive(Debug)]
