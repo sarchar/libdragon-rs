@@ -257,7 +257,6 @@ impl<'a> App<'a> {
         gl::Disable(gl::RDPQ_TEXTURING_N64);
         gl::Disable(gl::RDPQ_MATERIAL_N64);
 
-
         gl::context_end();
 
         rdpq::detach_show();

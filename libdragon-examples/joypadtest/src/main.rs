@@ -37,7 +37,7 @@ extern "C" fn main() -> ! {
 
         joypad::foreach(|port| {
             let style = port.get_style();
-            let accessory_type = port.get_accessory_type();
+            let accessory_type = port.accessory().get_type();
             let rumble = match port.get_rumble_supported() {
                 true => match port.get_rumble_active() {
                     true => "Active",

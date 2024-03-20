@@ -30,25 +30,6 @@ pub enum Style {
     Mouse,
 }
 
-/// Joypad Accessories enumeration
-#[derive(Debug, Copy, Clone)]
-pub enum AccessoryType {
-    /// No accessory.
-    None,
-    /// Unknown or malfunctioning accessory.
-    Unknown,
-    /// Controller Pak accessory.
-    ControllerPak,
-    /// Rumble Pak accessory.
-    RumblePak,
-    /// Transfer Pak accessory.
-    TransferPak,
-    /// Bio Sensor accessory.
-    BioSensor,
-    /// Pokemon Snap Station accessory.
-    SnapStation,
-}
-
 /// Joypad Axis enumeration values.
 ///
 /// See [`joypad_axis_t`](libdragon_sys::joypad_axis_t)
@@ -372,26 +353,6 @@ impl Port {
         }
     }
 
-    /// Get the Joypad accessory type for a Joypad port.
-    ///
-    /// See [`joypad_get_accessory_type`](libdragon_sys::joypad_get_accessory_type)
-    pub fn get_accessory_type(&self) -> AccessoryType {
-        let s = unsafe {
-            libdragon_sys::joypad_get_accessory_type(self.port as libdragon_sys::joypad_port_t)
-        };
-
-        match s {
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_NONE           => AccessoryType::None,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_UNKNOWN        => AccessoryType::Unknown,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_CONTROLLER_PAK => AccessoryType::ControllerPak,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_RUMBLE_PAK     => AccessoryType::RumblePak,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_TRANSFER_PAK   => AccessoryType::TransferPak,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_BIO_SENSOR     => AccessoryType::BioSensor,
-            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_SNAP_STATION   => AccessoryType::SnapStation,
-            _ => todo!("invalid response from joypad_get_accessory_type")
-        }
-    }
-
     /// Is rumble supported for a Joypad port?
     ///
     /// See [`joypad_get_rumble_supported`](libdragon_sys::joypad_get_rumble_supported)
@@ -504,4 +465,13 @@ impl Port {
     }
 }
 
+/// Base trait for other modules to extend [Port]
+pub trait BasePort {
+    /// Return the [Port]'s controller index
+    fn port(&self) -> usize;
+}
 
+impl BasePort for Port {
+    /// Return the [Port]'s controller index
+    fn port(&self) -> usize { self.port }
+}

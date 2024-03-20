@@ -59,6 +59,8 @@ pub mod graphics;
 pub mod joybus;
 /// Input support
 pub mod joypad;
+/// Controller Pak Filesystem Routines
+pub mod mempak;
 /// Model64 support
 pub mod model64;
 /// Direct RDP commands
@@ -80,12 +82,18 @@ pub mod timer;
 /// Throttling engine
 pub mod throttle;
 
+// Always include the Port traits
+pub use mempak::MemPakGetter;
+pub use joybus::AccessoryGetter;
+pub use joybus::JoybusGetter;
+
 #[derive(Debug)]
 pub enum LibDragonError {
     DfsError { error: dfs::DfsError },
     ErrnoError { errno: u32 },
     Utf8Error { error: core::str::Utf8Error },
     AccessoryIoError { error: joybus::AccessoryIoStatus },
+    MemPakError { code: i32 },
 }
 
 impl From<core::str::Utf8Error> for LibDragonError {

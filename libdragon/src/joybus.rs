@@ -118,8 +118,24 @@ pub const IDENTIFY_STATUS_GCN_RUMBLE_ACTIVE: u32 = libdragon_sys::JOYBUS_IDENTIF
 /// See [`JOYBUS_IDENTIFY_STATUS_EEPROM_BUSY`](libdragon_sys::JOYBUS_IDENTIFY_STATUS_EEPROM_BUSY) for details.
 pub const IDENTIFY_STATUS_EEPROM_BUSY: u32 = libdragon_sys::JOYBUS_IDENTIFY_STATUS_EEPROM_BUSY;
 
-/// Since Joybus commands are applied to a specific port, extend Joypad Ports with the joybus functionality:
-impl joypad::Port {
+/// Create a [Joybus] object from a given [Port](joypad::Port)
+pub trait JoybusGetter: joypad::BasePort {
+    fn joybus(&self) -> Joybus;
+}
+
+impl JoybusGetter for joypad::Port {
+    #[inline]
+    fn joybus(&self) -> Joybus { Joybus { port: self.port } }
+}
+
+/// Structure containing Joybus functionality.  This structure knows the controller port being
+/// operated on, simplifying the interface.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Joybus {
+    port: usize,
+}
+
+impl Joybus {
     /// Execute a Joybus command synchronously on the given port.
     ///
     /// See [`joybus_exec_cmd`](libdragon_sys::joybus_exec_cmd) for details.
@@ -168,13 +184,73 @@ impl From<libdragon_sys::joybus_accessory_io_status_t> for AccessoryIoStatus {
     }
 }
 
-/// Extend [joypad::Port] with Joybus accessory functions
-impl joypad::Port {
+/// Joypad Accessories enumeration
+#[derive(Debug, Copy, Clone)]
+pub enum AccessoryType {
+    /// No accessory.
+    None,
+    /// Unknown or malfunctioning accessory.
+    Unknown,
+    /// Controller Pak accessory.
+    ControllerPak,
+    /// Rumble Pak accessory.
+    RumblePak,
+    /// Transfer Pak accessory.
+    TransferPak,
+    /// Bio Sensor accessory.
+    BioSensor,
+    /// Pokemon Snap Station accessory.
+    SnapStation,
+}
+
+impl From<libdragon_sys::joypad_accessory_type_t> for AccessoryType {
+    fn from(val: libdragon_sys::joypad_accessory_type_t) -> AccessoryType {
+        match val {
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_NONE           => AccessoryType::None,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_UNKNOWN        => AccessoryType::Unknown,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_CONTROLLER_PAK => AccessoryType::ControllerPak,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_RUMBLE_PAK     => AccessoryType::RumblePak,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_TRANSFER_PAK   => AccessoryType::TransferPak,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_BIO_SENSOR     => AccessoryType::BioSensor,
+            libdragon_sys::joypad_accessory_type_t_JOYPAD_ACCESSORY_TYPE_SNAP_STATION   => AccessoryType::SnapStation,
+            _ => todo!("invalid response from joypad_get_accessory_type")
+        }
+    }
+}
+
+/// Create an [Accessory] object from a given [Port](joypad::Port)
+pub trait AccessoryGetter: joypad::BasePort {
+    fn accessory(&self) -> Accessory;
+}
+
+impl AccessoryGetter for joypad::Port {
+    #[inline]
+    fn accessory(&self) -> Accessory { Accessory { port: self.port } }
+}
+
+/// Structure containing the Accessory functionality. This structure knows the controller port
+/// being operated on, simplifying the interface.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Accessory {
+    port: usize
+}
+
+impl Accessory {
+    /// Get the Joypad accessory type for a Joypad port.
+    ///
+    /// See [`joypad_get_accessory_type`](libdragon_sys::joypad_get_accessory_type)
+    pub fn get_type(&self) -> AccessoryType {
+        let s = unsafe {
+            libdragon_sys::joypad_get_accessory_type(self.port as libdragon_sys::joypad_port_t)
+        };
+        s.into()
+    }
+
     /// Synchronously perform a Joybus N64 accessory read command.
     ///
     /// See [`joybus_accessory_read`](libdragon_sys::joybus_accessory_read) for details.
     #[inline]
-    pub fn accessory_read(&mut self, addr: u16) -> Result<Vec<u8>> {
+    pub fn read(&mut self, addr: u16) -> Result<Vec<u8>> {
         let mut res = Vec::with_capacity(32);
         let r: AccessoryIoStatus = unsafe {
             libdragon_sys::joybus_accessory_read(self.port as i32, addr, res.as_mut_ptr() as *mut _).into()
@@ -189,7 +265,7 @@ impl joypad::Port {
     ///
     /// See [`joybus_accessory_write`](libdragon_sys::joybus_accessory_write) for details.
     #[inline]
-    pub fn accessory_write(&mut self, addr: u16, data: &[u8]) -> Result<()> {
+    pub fn write(&mut self, addr: u16, data: &[u8]) -> Result<()> {
         assert!(data.len() >= 32, "data block must be 32 bytes of data");
         let r: AccessoryIoStatus = unsafe {
             libdragon_sys::joybus_accessory_write(self.port as i32, addr, data.as_ptr() as *const _).into()
