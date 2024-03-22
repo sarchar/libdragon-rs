@@ -200,6 +200,9 @@ impl Blitter<'_> {
 }
 
 impl Drop for Blitter<'_> {
+    /// Free the Blitter
+    ///
+    /// See [`yuv_blitter_free`](libdragon_sys::yuv_blitter_free) for details.
     #[inline]
     fn drop(&mut self) { unsafe { libdragon_sys::yuv_blitter_free(self as *mut Self as *mut _); } }
 }
