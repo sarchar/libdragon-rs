@@ -9,9 +9,9 @@ pub enum Model64AnimSlot {
     Slot3
 }
 
-impl Into<libdragon_sys::model64_anim_slot_t> for Model64AnimSlot {
-    fn into(self) -> libdragon_sys::model64_anim_slot_t {
-        match self {
+impl From<Model64AnimSlot> for libdragon_sys::model64_anim_slot_t {
+    fn from(v: Model64AnimSlot) -> Self {
+        match v {
             Model64AnimSlot::Slot0 => libdragon_sys::model64_anim_slot_t_MODEL64_ANIM_SLOT_0,
             Model64AnimSlot::Slot1 => libdragon_sys::model64_anim_slot_t_MODEL64_ANIM_SLOT_1,
             Model64AnimSlot::Slot2 => libdragon_sys::model64_anim_slot_t_MODEL64_ANIM_SLOT_2,

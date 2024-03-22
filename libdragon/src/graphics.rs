@@ -52,10 +52,10 @@ impl Color {
     }
 }
 
-impl Into<libdragon_sys::color_t> for Color {
-    fn into(self) -> libdragon_sys::color_t {
+impl From<Color> for libdragon_sys::color_t {
+    fn from(c: Color) -> Self {
         unsafe {
-            *core::mem::transmute::<&Self, *const libdragon_sys::color_t>(&self)
+            *core::mem::transmute::<&Color, *const Self>(&c)
         }
     }
 }

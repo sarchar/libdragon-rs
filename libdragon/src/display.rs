@@ -17,9 +17,9 @@ pub enum InterlaceMode {
     Full
 }
 
-impl Into<libdragon_sys::interlace_mode_t> for InterlaceMode {
-    fn into(self) -> libdragon_sys::interlace_mode_t {
-        match self {
+impl From<InterlaceMode> for libdragon_sys::interlace_mode_t {
+    fn from(mode: InterlaceMode) -> Self {
+        match mode {
             InterlaceMode::Off  => libdragon_sys::interlace_mode_t_INTERLACE_OFF,
             InterlaceMode::Half => libdragon_sys::interlace_mode_t_INTERLACE_HALF,
             InterlaceMode::Full => libdragon_sys::interlace_mode_t_INTERLACE_FULL,
@@ -59,9 +59,9 @@ pub enum Resolution {
     Custom(u32, u32, InterlaceMode),
 }
 
-impl Into<libdragon_sys::resolution_t> for Resolution {
-    fn into(self) -> libdragon_sys::resolution_t {
-        match self {
+impl From<Resolution> for libdragon_sys::resolution_t {
+    fn from(resolution: Resolution) -> Self {
+        match resolution {
             Resolution::_256x240 => *RESOLUTION_256x240,
             Resolution::_320x240 => *RESOLUTION_320x240,
             Resolution::_512x240 => *RESOLUTION_512x240,
@@ -90,9 +90,9 @@ pub enum BitDepth {
     Bpp32,
 }
 
-impl Into<libdragon_sys::bitdepth_t> for BitDepth {
-    fn into(self) -> libdragon_sys::bitdepth_t {
-        match self {
+impl From<BitDepth> for libdragon_sys::bitdepth_t {
+    fn from(v: BitDepth) -> Self {
+        match v {
             BitDepth::Bpp16 => libdragon_sys::bitdepth_t_DEPTH_16_BPP,
             BitDepth::Bpp32 => libdragon_sys::bitdepth_t_DEPTH_32_BPP,
         }
@@ -100,8 +100,8 @@ impl Into<libdragon_sys::bitdepth_t> for BitDepth {
 }
 
 impl From<libdragon_sys::bitdepth_t> for BitDepth {
-    fn from(value: libdragon_sys::bitdepth_t) -> Self {
-        match value {
+    fn from(v: libdragon_sys::bitdepth_t) -> Self {
+        match v {
             libdragon_sys::bitdepth_t_DEPTH_16_BPP => BitDepth::Bpp16,
             libdragon_sys::bitdepth_t_DEPTH_32_BPP => BitDepth::Bpp32,
             _ => panic!("invalid bitdepth_t value"),
@@ -123,9 +123,9 @@ pub enum Gamma {
     CorrectDither
 }
 
-impl Into<libdragon_sys::gamma_t> for Gamma {
-    fn into(self) -> libdragon_sys::gamma_t {
-        match self {
+impl From<Gamma> for libdragon_sys::gamma_t {
+    fn from(v: Gamma) -> Self {
+        match v {
             Gamma::None => libdragon_sys::gamma_t_GAMMA_NONE,
             Gamma::Correct => libdragon_sys::gamma_t_GAMMA_CORRECT,
             Gamma::CorrectDither => libdragon_sys::gamma_t_GAMMA_CORRECT_DITHER,
@@ -160,9 +160,9 @@ pub enum FilterOptions {
     ResampleAntialiasDedither,
 }
 
-impl Into<libdragon_sys::filter_options_t> for FilterOptions {
-    fn into(self) -> libdragon_sys::filter_options_t {
-        match self {
+impl From<FilterOptions> for libdragon_sys::filter_options_t {
+    fn from(v: FilterOptions) -> Self {
+        match v {
             FilterOptions::Disabled => libdragon_sys::filter_options_t_FILTERS_DISABLED,
             FilterOptions::Resample => libdragon_sys::filter_options_t_FILTERS_RESAMPLE,
             FilterOptions::Dedither => libdragon_sys::filter_options_t_FILTERS_DEDITHER,

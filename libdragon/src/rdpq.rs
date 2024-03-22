@@ -116,11 +116,11 @@ pub struct TileParms {
     t      : TileSTParms,
 }
 
-impl Into<libdragon_sys::rdpq_tileparms_t> for TileParms {
-    fn into(self) -> libdragon_sys::rdpq_tileparms_t {
-        assert!(::core::mem::size_of::<Self>() == ::core::mem::size_of::<libdragon_sys::rdpq_tileparms_t>());
+impl From<TileParms> for libdragon_sys::rdpq_tileparms_t {
+    fn from(v: TileParms) -> Self {
+        assert!(::core::mem::size_of::<TileParms>() == ::core::mem::size_of::<Self>());
         unsafe {
-            *::core::mem::transmute::<&Self, *const libdragon_sys::rdpq_tileparms_t>(&self)
+            *::core::mem::transmute::<&TileParms, *const Self>(&v)
         }
     }
 }
@@ -1012,10 +1012,10 @@ pub struct FontStyle {
     pub color: graphics::Color,
 }
 
-impl Into<libdragon_sys::rdpq_fontstyle_t> for FontStyle {
-    fn into(self) -> libdragon_sys::rdpq_fontstyle_t {
+impl From<FontStyle> for libdragon_sys::rdpq_fontstyle_t {
+    fn from(v: FontStyle) -> Self {
         unsafe {
-            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_fontstyle_t>(&self)
+            *core::mem::transmute::<&FontStyle, *const Self>(&v)
         }
     }
 }
@@ -1804,9 +1804,9 @@ impl Combiner {
     }
 }
 
-impl Into<u64> for Combiner {
-    fn into(self) -> u64 {
-        self.0 as u64
+impl From<Combiner> for u64 {
+    fn from(v: Combiner) -> Self {
+        v.0 as Self
     }
 }
 
@@ -1826,9 +1826,9 @@ impl Blender {
     }
 }
 
-impl Into<u32> for Blender {
-    fn into(self) -> u32 {
-        self.0 as u32
+impl From<Blender> for u32 {
+    fn from(v: Blender) -> Self {
+        v.0 as Self
     }
 }
 
@@ -1880,9 +1880,9 @@ pub enum Filter {
     Median
 }
 
-impl Into<libdragon_sys::rdpq_filter_s> for Filter {
-    fn into(self) -> libdragon_sys::rdpq_filter_s {
-        match self {
+impl From<Filter> for libdragon_sys::rdpq_filter_s {
+    fn from(v: Filter) -> Self {
+        match v {
             Filter::Point    => libdragon_sys::rdpq_filter_s_FILTER_POINT,
             Filter::Bilinear => libdragon_sys::rdpq_filter_s_FILTER_BILINEAR,
             Filter::Median   => libdragon_sys::rdpq_filter_s_FILTER_MEDIAN,
@@ -1932,9 +1932,9 @@ pub enum Dither {
     NoneNone,           
 }
 
-impl Into<libdragon_sys::rdpq_dither_s> for Dither {
-    fn into(self) -> libdragon_sys::rdpq_dither_s {
-        match self {
+impl From<Dither> for libdragon_sys::rdpq_dither_s {
+    fn from(v: Dither) -> Self {
+        match v {
             Dither::SquareSquare => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_SQUARE,
             Dither::SquareInvSquare => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_INVSQUARE,
             Dither::SquareNoise => libdragon_sys::rdpq_dither_s_DITHER_SQUARE_NOISE,
@@ -1968,9 +1968,9 @@ pub enum Tlut {
     Ia16,
 }
 
-impl Into<libdragon_sys::rdpq_tlut_s> for Tlut {
-    fn into(self) -> libdragon_sys::rdpq_tlut_s {
-        match self {
+impl From<Tlut> for libdragon_sys::rdpq_tlut_s {
+    fn from(v: Tlut) -> Self {
+        match v {
             Tlut::None   => libdragon_sys::rdpq_tlut_s_TLUT_NONE,
             Tlut::Rgba16 => libdragon_sys::rdpq_tlut_s_TLUT_RGBA16,
             Tlut::Ia16   => libdragon_sys::rdpq_tlut_s_TLUT_IA16,
@@ -2009,9 +2009,9 @@ pub enum Mipmap {
     InterpolateDetail,
 }
 
-impl Into<libdragon_sys::rdpq_mipmap_s> for Mipmap {
-    fn into(self) -> libdragon_sys::rdpq_mipmap_s {
-        match self {
+impl From<Mipmap> for libdragon_sys::rdpq_mipmap_s {
+    fn from(v: Mipmap) -> Self {
+        match v {
             Mipmap::None               => libdragon_sys::rdpq_mipmap_s_MIPMAP_NONE,
             Mipmap::Nearest            => libdragon_sys::rdpq_mipmap_s_MIPMAP_NEAREST,
             Mipmap::Interpolate        => libdragon_sys::rdpq_mipmap_s_MIPMAP_INTERPOLATE,
@@ -2034,9 +2034,9 @@ pub enum Antialias {
     Reduced,
 }
 
-impl Into<libdragon_sys::rdpq_antialias_s> for Antialias {
-    fn into(self) -> libdragon_sys::rdpq_antialias_s {
-        match self {
+impl From<Antialias> for libdragon_sys::rdpq_antialias_s {
+    fn from(v: Antialias) -> Self {
+        match v {
             Antialias::None     => libdragon_sys::rdpq_antialias_s_AA_NONE,
             Antialias::Standard => libdragon_sys::rdpq_antialias_s_AA_STANDARD,
             Antialias::Reduced  => libdragon_sys::rdpq_antialias_s_AA_REDUCED,
@@ -2597,11 +2597,11 @@ pub struct TexParmsST {
     pub mirror   : bool,
 }
 
-impl Into<libdragon_sys::rdpq_texparms_t> for TexParms {
-    fn into(self) -> libdragon_sys::rdpq_texparms_t {
-        assert!(::core::mem::size_of::<Self>() == ::core::mem::size_of::<libdragon_sys::rdpq_texparms_t>());
+impl From<TexParms> for libdragon_sys::rdpq_texparms_t {
+    fn from(v: TexParms) -> Self {
+        assert!(::core::mem::size_of::<TexParms>() == ::core::mem::size_of::<Self>());
         unsafe {
-            *::core::mem::transmute::<&Self, *const libdragon_sys::rdpq_texparms_t>(&self)
+            *::core::mem::transmute::<&TexParms, *const Self>(&v)
         }
     }
 }
@@ -2747,11 +2747,11 @@ pub struct BlitParms {
     pub ny       : i32,
 }
 
-impl Into<libdragon_sys::rdpq_blitparms_s> for BlitParms {
-    fn into(self) -> libdragon_sys::rdpq_blitparms_s {
-        assert!(::core::mem::size_of::<Self>() == ::core::mem::size_of::<libdragon_sys::rdpq_blitparms_s>());
+impl From<BlitParms> for libdragon_sys::rdpq_blitparms_s {
+    fn from(v: BlitParms) -> Self {
+        assert!(::core::mem::size_of::<BlitParms>() == ::core::mem::size_of::<Self>());
         unsafe {
-            *::core::mem::transmute::<&Self, *const libdragon_sys::rdpq_blitparms_s>(&self)
+            *::core::mem::transmute::<&BlitParms, *const Self>(&v)
         }
     }
 }
@@ -2848,10 +2848,10 @@ pub struct TextParms {
     pub wrap        : TextWrap,
 }
 
-impl Into<libdragon_sys::rdpq_textparms_t> for TextParms {
-    fn into(self) -> libdragon_sys::rdpq_textparms_t {
+impl From<TextParms> for libdragon_sys::rdpq_textparms_t {
+    fn from(v: TextParms) -> Self {
         unsafe {
-            *core::mem::transmute::<&Self, *const libdragon_sys::rdpq_textparms_t>(&self)
+            *core::mem::transmute::<&TextParms, *const Self>(&v)
         }
     }
 }

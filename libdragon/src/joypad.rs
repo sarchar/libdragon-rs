@@ -49,9 +49,9 @@ pub enum Axis {
     AnalogR,
 }
 
-impl Into<libdragon_sys::joypad_axis_t> for Axis {
-    fn into(self) -> libdragon_sys::joypad_axis_t {
-        match self {
+impl From<Axis> for libdragon_sys::joypad_axis_t {
+    fn from(v: Axis) -> Self {
+        match v {
             Axis::StickX  => libdragon_sys::joypad_axis_t_JOYPAD_AXIS_STICK_X,
             Axis::StickY  => libdragon_sys::joypad_axis_t_JOYPAD_AXIS_STICK_Y,
             Axis::CStickX => libdragon_sys::joypad_axis_t_JOYPAD_AXIS_CSTICK_X,
@@ -81,9 +81,9 @@ pub enum TwoD {
     Any,
 }
 
-impl Into<libdragon_sys::joypad_2d_t> for TwoD {
-    fn into(self) -> libdragon_sys::joypad_2d_t {
-        match self {
+impl From<TwoD> for libdragon_sys::joypad_2d_t {
+    fn from(v: TwoD) -> Self {
+        match v {
             TwoD::Stick     => libdragon_sys::joypad_2d_t_JOYPAD_2D_STICK,
             TwoD::Dpad      => libdragon_sys::joypad_2d_t_JOYPAD_2D_DPAD,
             TwoD::C         => libdragon_sys::joypad_2d_t_JOYPAD_2D_C,

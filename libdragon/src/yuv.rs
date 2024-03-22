@@ -101,9 +101,9 @@ pub enum Zoom {
     None
 }
 
-impl Into<u32> for Zoom {
-    fn into(self) -> u32 {
-        match self {
+impl From<Zoom> for u32 {
+    fn from(v: Zoom) -> Self {
+        match v {
             Zoom::KeepAspect => libdragon_sys::yuv_zoom_t_YUV_ZOOM_KEEP_ASPECT,
             Zoom::Full => libdragon_sys::yuv_zoom_t_YUV_ZOOM_FULL,
             Zoom::None => libdragon_sys::yuv_zoom_t_YUV_ZOOM_NONE,
@@ -121,9 +121,9 @@ pub enum Align {
     Max
 }
 
-impl Into<u32> for Align {
-    fn into(self) -> u32 {
-        match self {
+impl From<Align> for u32 {
+    fn from(v: Align) -> Self {
+        match v {
             Align::Center => libdragon_sys::yuv_align_t_YUV_ALIGN_CENTER,
             Align::Min => libdragon_sys::yuv_align_t_YUV_ALIGN_MIN,
             Align::Max => libdragon_sys::yuv_align_t_YUV_ALIGN_MAX,
@@ -159,14 +159,14 @@ impl Default for FmvParms<'_> {
     }
 }
 
-impl Into<libdragon_sys::yuv_fmv_parms_t> for FmvParms<'_> {
-    fn into(self) -> libdragon_sys::yuv_fmv_parms_t {
-        libdragon_sys::yuv_fmv_parms_t {
-            cs: unsafe { ::core::mem::transmute(self.cs) },
-            halign: self.halign.into(),
-            valign: self.valign.into(),
-            zoom: self.zoom.into(),
-            bkg_color: self.bkg_color.c,
+impl From<FmvParms<'_>> for libdragon_sys::yuv_fmv_parms_t {
+    fn from(v: FmvParms) -> Self {
+        Self {
+            cs: unsafe { ::core::mem::transmute(v.cs) },
+            halign: v.halign.into(),
+            valign: v.valign.into(),
+            zoom: v.zoom.into(),
+            bkg_color: v.bkg_color.c,
         }
     }
 }

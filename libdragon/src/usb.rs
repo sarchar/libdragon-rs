@@ -51,9 +51,9 @@ impl From<u32> for DataType {
     }
 }
 
-impl Into<u32> for DataType {
-    fn into(self) -> u32 {
-        match self {
+impl From<DataType> for u32 {
+    fn from(v: DataType) -> Self {
+        match v {
             DataType::Text          => libdragon_sys::DATATYPE_TEXT,
             DataType::RawBinary     => libdragon_sys::DATATYPE_RAWBINARY,
             DataType::Header        => libdragon_sys::DATATYPE_HEADER,

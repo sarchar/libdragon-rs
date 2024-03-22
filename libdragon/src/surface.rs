@@ -48,9 +48,9 @@ impl From<libdragon_sys::tex_format_t> for TexFormat {
     }
 }
 
-impl Into<libdragon_sys::tex_format_t> for TexFormat {
-    fn into(self) -> libdragon_sys::tex_format_t {
-        match self {
+impl From<TexFormat> for libdragon_sys::tex_format_t {
+    fn from(v: TexFormat) -> Self {
+        match v {
             TexFormat::None   => libdragon_sys::tex_format_t_FMT_NONE,
             TexFormat::Rgba16 => libdragon_sys::tex_format_t_FMT_RGBA16,
             TexFormat::Rgba32 => libdragon_sys::tex_format_t_FMT_RGBA32,

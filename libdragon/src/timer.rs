@@ -44,9 +44,9 @@ pub enum Mode {
     ContinuousDisabled,
 }
 
-impl Into<::core::ffi::c_int> for Mode {
-    fn into(self) -> ::core::ffi::c_int {
-        match self {
+impl From<Mode> for ::core::ffi::c_int {
+    fn from(v: Mode) -> Self {
+        match v {
             Mode::OneShot    => libdragon_sys::TF_ONE_SHOT   as ::core::ffi::c_int,
             Mode::Continuous => libdragon_sys::TF_CONTINUOUS as ::core::ffi::c_int,
             Mode::OneShotDisabled    => 

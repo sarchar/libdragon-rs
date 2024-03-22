@@ -82,9 +82,9 @@ pub enum Mirror {
     XY,
 }
 
-impl Into<libdragon_sys::mirror_t> for Mirror {
-    fn into(self) -> libdragon_sys::mirror_t {
-        match self {
+impl From<Mirror> for libdragon_sys::mirror_t {
+    fn from(v: Mirror) -> Self {
+        match v {
             Mirror::Disabled => libdragon_sys::mirror_t_MIRROR_DISABLED,
             Mirror::X => libdragon_sys::mirror_t_MIRROR_X,
             Mirror::Y => libdragon_sys::mirror_t_MIRROR_Y,
@@ -102,9 +102,9 @@ pub enum Flush {
     Automatic
 }
 
-impl Into<libdragon_sys::flush_t> for Flush {
-    fn into(self) -> libdragon_sys::flush_t {
-        match self {
+impl From<Flush> for libdragon_sys::flush_t {
+    fn from(v: Flush) -> Self {
+        match v {
             Flush::None => libdragon_sys::flush_t_FLUSH_STRATEGY_NONE,
             Flush::Automatic => libdragon_sys::flush_t_FLUSH_STRATEGY_AUTOMATIC,
         }
