@@ -14,8 +14,8 @@ impl Ym64 {
     /// Open a YM64 file for playback
     ///
     /// See [`ym64player_open`](libdragon_sys::ym64player_open) for details.
-    pub fn open(path: dfs::DfsPathBuf) -> Result<Self> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn open<T: AsRef<dfs::Path>>(path: T) -> Result<Self> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
         let mut backing_instance = Box::pin(unsafe { 

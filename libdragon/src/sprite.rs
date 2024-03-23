@@ -30,8 +30,8 @@ impl<'a> Sprite<'a> {
     /// Rust-specific: the returned sprite 
     ///
     /// See [`sprite_load`](libdragon_sys::sprite_load) for details.
-    pub fn load(path: dfs::DfsPathBuf) -> Result<Self> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn load<T: AsRef<dfs::Path>>(path: T) -> Result<Self> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
         let s = unsafe {

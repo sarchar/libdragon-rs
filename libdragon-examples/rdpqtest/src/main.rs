@@ -5,7 +5,6 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use libdragon::*;
 
-use libdragon::dfs::DfsPathBuf;
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::sprite::Sprite;
 use libdragon::surface::TexFormat;
@@ -40,7 +39,7 @@ impl<'a> App<'a> {
         let display_width = display::get_width();
         let display_height = display::get_height();
 
-        let brew_sprite = Sprite::load(DfsPathBuf::from("rom:/n64brew.sprite")).unwrap();
+        let brew_sprite = Sprite::load(dfs::PathBuf::from("rom:/n64brew.sprite")).unwrap();
         let obj_max_x = display_width - brew_sprite.width() as u32;
         let obj_max_y = display_height - brew_sprite.height() as u32;
 
@@ -55,7 +54,7 @@ impl<'a> App<'a> {
             });
         }
 
-        let tiles_sprite = Sprite::load(DfsPathBuf::from("rom:/tiles.sprite")).unwrap();
+        let tiles_sprite = Sprite::load(dfs::PathBuf::from("rom:/tiles.sprite")).unwrap();
 
         // Create a block for the background, so that we can replay it later.
         rspq::Block::begin();

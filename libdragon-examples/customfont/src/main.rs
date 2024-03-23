@@ -5,7 +5,6 @@
 use libdragon::*;
 
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::dfs::DfsPathBuf;
 use libdragon::graphics::Graphics;
 use libdragon::sprite::Sprite;
 
@@ -22,7 +21,7 @@ extern "C" fn main() -> ! {
     timer::init();
     
     // Read in the custom font
-    let custom_font = Sprite::load(DfsPathBuf::from("rom:/libdragon-font.sprite")).unwrap();
+    let custom_font = Sprite::load(dfs::PathBuf::from("rom:/libdragon-font.sprite")).unwrap();
 
     // Grab a render buffer and create a Graphics context
     let mut g = Graphics::new(display::get());

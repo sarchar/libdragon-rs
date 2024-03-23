@@ -43,8 +43,14 @@ const DT_DIR: i32 = libdragon_sys::DT_DIR as i32;
 
 /// Type alias to a [typed_path::PathBuf] with encoding [typed_path::UnixEncoding].
 ///
-/// [DfsPathBuf] is used in place of where `std::path::PathBuf` might have been used.
-pub type DfsPathBuf = typed_path::PathBuf<typed_path::UnixEncoding>;
+/// [PathBuf] is used in place of where `std::path::PathBuf` might have been used.
+pub type PathBuf = typed_path::PathBuf<typed_path::UnixEncoding>;
+
+/// Type alias to a [typed_path::Path] with encoding [typed_path::UnixEncoding].
+///
+/// [Path] is used in place of where `std::path::Path` might have been used, and in particular
+/// the `AsRef<Path>` equivelents.
+pub type Path = typed_path::Path<typed_path::UnixEncoding>;
 
 /// Mapping from the various LibDragon DFS_E* types into an enum
 #[derive(Debug, Copy, Clone)]
@@ -105,7 +111,7 @@ pub fn init(base_fs_loc: Option<u32>) -> Result<()> {
 /// Change directories to the specified path.
 ///
 /// See [`dfs_chdir`](libdragon_sys::dfs_chdir) for details.
-pub fn chdir(path: &DfsPathBuf) -> Result<()> {
+pub fn chdir(path: &PathBuf) -> Result<()> {
     let path_bytes: &[u8] = path.as_bytes();
     let cpath = CString::new(path_bytes).unwrap();
     let err = unsafe {
@@ -123,7 +129,7 @@ pub struct DirEntry {
     /// Type of the current entry, which may be [EntryType::Eof]
     pub entry_type: EntryType,
     /// File name (not full path) of the current entry, which may be empty in the case of Eof.
-    pub name: DfsPathBuf,
+    pub name: PathBuf,
 }
 
 impl From<i32> for EntryType {
@@ -140,7 +146,7 @@ impl From<i32> for EntryType {
 /// Find the first file or directory in a directory listing.
 ///
 /// See [`dfs_dir_findfirst`](libdragon_sys::dfs_dir_findfirst) for details.
-pub fn dir_findfirst(path: &DfsPathBuf) -> Result<DirEntry> {
+pub fn dir_findfirst(path: &PathBuf) -> Result<DirEntry> {
     let path_bytes: &[u8] = path.as_bytes();
     let cpath = CString::new(path_bytes).unwrap();
     let mut namebuf = [0u8; MAX_FILENAME_LEN];
@@ -153,7 +159,7 @@ pub fn dir_findfirst(path: &DfsPathBuf) -> Result<DirEntry> {
         let c_str = unsafe { CStr::from_ptr(namebuf.as_ptr() as *const i8) };
         Ok(DirEntry {
             entry_type: ret.into(),
-            name: DfsPathBuf::from(c_str.to_str()?),
+            name: PathBuf::from(c_str.to_str()?),
         })
     }
 }
@@ -172,7 +178,7 @@ pub fn dir_findnext() -> Result<DirEntry> {
         let c_str = unsafe { CStr::from_ptr(namebuf.as_ptr() as *const i8) };
         Ok(DirEntry {
             entry_type: ret.into(),
-            name: DfsPathBuf::from(c_str.to_str()?),
+            name: PathBuf::from(c_str.to_str()?),
         })
     }
 }
@@ -189,8 +195,8 @@ pub struct DfsFileHandle(Option<u32>);
 /// Open a file given a path
 ///
 /// See [`dfs_open`](libdragon_sys::dfs_open) for details.
-pub fn open(path: &DfsPathBuf) -> Result<DfsFileHandle> {
-    let path_bytes: &[u8] = path.as_bytes();
+pub fn open<T: AsRef<Path>>(path: T) -> Result<DfsFileHandle> {
+    let path_bytes: &[u8] = path.as_ref().as_bytes();
     let cpath = CString::new(path_bytes).unwrap();
     let ret = unsafe {
         libdragon_sys::dfs_open(cpath.as_ptr())
@@ -343,8 +349,8 @@ pub struct File {
 
 impl File {
     /// Opens a [FILE](libdragon_sys::FILE) using [fopen](libdragon_sys::fopen) and returns a [File] wrapper object.
-    pub fn open(path: &DfsPathBuf, mode: &str) -> Result<File> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn open<T: AsRef<Path>>(path: T, mode: &str) -> Result<File> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
         let cmode = CString::new(mode).unwrap();
         let fp = unsafe {
@@ -531,11 +537,11 @@ impl<'a> Dir<'a> {
         }
     }
 
-    /// Return a [DfsPathBuf] object with the file name set to the current entry.
+    /// Return a [PathBuf] object with the file name set to the current entry.
     /// See [dir_t](libdragon_sys::dir_t) for more information.
-    pub fn d_name(&self) -> DfsPathBuf {
+    pub fn d_name(&self) -> PathBuf {
         let slice = unsafe { CStr::from_ptr(self.dir.d_name.as_ptr()) };
-        let mut pb = DfsPathBuf::new();
+        let mut pb = PathBuf::new();
         pb.set_file_name(slice.to_bytes());
         pb
     }

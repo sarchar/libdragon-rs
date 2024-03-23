@@ -4,7 +4,6 @@
 
 use libdragon::*;
 
-use libdragon::dfs::DfsPathBuf;
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::sprite::Sprite;
 use libdragon::surface::{TexFormat, Surface};
@@ -89,10 +88,10 @@ impl<'a> App<'a> {
         let zbuffer = Surface::alloc(TexFormat::Rgba16, display::get_width(), display::get_height());
 
         let sprites = [
-            Sprite::load(DfsPathBuf::from("rom:/circle0.sprite")).unwrap(),
-            Sprite::load(DfsPathBuf::from("rom:/diamond0.sprite")).unwrap(),
-            Sprite::load(DfsPathBuf::from("rom:/pentagon0.sprite")).unwrap(),
-            Sprite::load(DfsPathBuf::from("rom:/triangle0.sprite")).unwrap(),
+            Sprite::load(dfs::PathBuf::from("rom:/circle0.sprite")).unwrap(),
+            Sprite::load(dfs::PathBuf::from("rom:/diamond0.sprite")).unwrap(),
+            Sprite::load(dfs::PathBuf::from("rom:/pentagon0.sprite")).unwrap(),
+            Sprite::load(dfs::PathBuf::from("rom:/triangle0.sprite")).unwrap(),
         ];
 
         let mut sphere = Sphere::new();

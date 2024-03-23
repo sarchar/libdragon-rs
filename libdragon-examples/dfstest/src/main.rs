@@ -4,13 +4,13 @@
 use libdragon::*;
 
 use libdragon::console::RenderMode;
-use libdragon::dfs::{DfsPathBuf, Read};
+use libdragon::dfs::Read;
 
 const MAX_LIST: usize = 20;
 
 #[derive(Debug)]
 struct Entry {
-    filename: DfsPathBuf,
+    filename: dfs::PathBuf,
     filetype: dfs::EntryType,
 }
 
@@ -176,8 +176,8 @@ extern "C" fn main() -> ! {
         }
 
         if keys.c_right && dir.entries[cursor].filetype == dfs::EntryType::File {
-            let path = DfsPathBuf::from(dir.current_path.clone())
-                                    .join(dir.entries[cursor].filename.clone());
+            let path = dfs::PathBuf::from(dir.current_path.clone())
+                                     .join(dir.entries[cursor].filename.clone());
             let res = dfs::File::open(&path, "r");
             match res {
                 Err(e) => {
@@ -237,15 +237,15 @@ extern "C" fn main() -> ! {
         }
 
         if keys.a && dir.entries[cursor].filetype == dfs::EntryType::Directory {
-            let path = DfsPathBuf::from(dir.current_path.clone())
-                                    .join(dir.entries[cursor].filename.clone());
+            let path = dfs::PathBuf::from(dir.current_path.clone())
+                                     .join(dir.entries[cursor].filename.clone());
             dir.change_directory(path.to_str().unwrap());
             page = 0;
             cursor = 0;
         }
 
         if keys.b {
-            let mut path = DfsPathBuf::from(dir.current_path.clone());
+            let mut path = dfs::PathBuf::from(dir.current_path.clone());
             if path.pop() {
                 // PathBuf doesn't understand rom://, so we fix it up
                 let mut s = String::from(path.to_str().unwrap());

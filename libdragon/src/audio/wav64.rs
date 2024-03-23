@@ -12,8 +12,8 @@ impl Wav64 {
     /// Create a Wav64 object for playback
     ///
     /// See [`wav64_open`](libdragon_sys::wav64_open) for details.
-    pub fn open(path: dfs::DfsPathBuf) -> Result<Self> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn open<T: AsRef<dfs::Path>>(path: T) -> Result<Self> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
         let mut backing_instance = Box::pin(unsafe {

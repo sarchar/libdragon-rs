@@ -23,8 +23,8 @@ impl Xm64 {
     /// Create a XM64 module file and prepare for playback
     ///
     /// See [`xm64player_open`](libdragon_sys::xm64player_open) for details.
-    pub fn open(path: dfs::DfsPathBuf) -> Result<Self> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn open<T: AsRef<dfs::Path>>(path: T) -> Result<Self> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
         let mut backing_instance = Box::pin(unsafe {

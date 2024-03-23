@@ -2,7 +2,6 @@
 #![no_main]
 
 use libdragon::*;
-use libdragon::dfs::DfsPathBuf;
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::Graphics;
 
@@ -31,12 +30,12 @@ extern "C" fn main() -> ! {
 	// let user increase it.
 	mixer::ch_set_limits(CHANNEL_MUSIC, 0, 128000.0, 0);
 
-	let mut sfx_cannon = Wav64::open(DfsPathBuf::from("rom:/cannon.wav64")).unwrap();
+	let mut sfx_cannon = Wav64::open(dfs::PathBuf::from("rom:/cannon.wav64")).unwrap();
 	
-	let mut sfx_laser = Wav64::open(DfsPathBuf::from("rom:/laser.wav64")).unwrap();
+	let mut sfx_laser = Wav64::open(dfs::PathBuf::from("rom:/laser.wav64")).unwrap();
     sfx_laser.set_loop(true);
 
-	let mut sfx_monosample = Wav64::open(DfsPathBuf::from("rom:/monosample8.wav64")).unwrap();
+	let mut sfx_monosample = Wav64::open(dfs::PathBuf::from("rom:/monosample8.wav64")).unwrap();
 	sfx_monosample.set_loop(true);
 
     let mut music = false;

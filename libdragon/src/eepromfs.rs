@@ -50,8 +50,8 @@ impl Eepfs {
 
     /// Add a new Entry to the filesystem configuration table. This wraps
     /// the creation of a [`eepfs_entry_t`](libdragon_sys::eepfs_entry_t).
-    pub fn add(&mut self, path: &dfs::DfsPathBuf, size: usize) -> &mut Self {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn add<T: AsRef<dfs::Path>>(&mut self, path: T, size: usize) -> &mut Self {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = Box::pin(CString::new(path_bytes).unwrap());
         let ptr = cpath.as_ptr();
 
@@ -66,9 +66,9 @@ impl Eepfs {
     /// Example:
     /// ```rust
     ///     let fs = Eepfs::new()
-    ///                    .add(dfs::DfsPathBuf::from("/high_scores.dat"), ::core::mem::size_of::<HighScores>())
-    ///                    .add(dfs::DfsPathBuf::from("/settings.dat"), ::core::mem::size_of::<Settings>())
-    ///                    .add(dfs::DfsPathBuf::from("/player.sav"), ::core::mem::size_of::<SaveData>())
+    ///                    .add(dfs::PathBuf::from("/high_scores.dat"), ::core::mem::size_of::<HighScores>())
+    ///                    .add(dfs::PathBuf::from("/settings.dat"), ::core::mem::size_of::<Settings>())
+    ///                    .add(dfs::PathBuf::from("/player.sav"), ::core::mem::size_of::<SaveData>())
     ///                    .init().expect("Could not initialize EEPROMFS");
     /// ```
     ///
@@ -85,8 +85,8 @@ impl Eepfs {
     /// prefer to avoid the allocation, use [read_into] instead.
     ///
     /// See [`eepfs_read`](libdragon_sys::eepfs_read) for details.
-    pub fn read(&self, path: &dfs::DfsPathBuf, size: usize) -> Result<Vec<u8>> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn read<T: AsRef<dfs::Path>>(&self, path: T, size: usize) -> Result<Vec<u8>> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = Box::pin(CString::new(path_bytes).unwrap());
         let mut res = Vec::with_capacity(size);
         let v = unsafe { libdragon_sys::eepfs_read(cpath.as_ptr(), res.as_mut_ptr() as *mut _, size) };
@@ -99,10 +99,10 @@ impl Eepfs {
     /// Rust: the data from the read is stored in `dest`
     /// 
     /// See [`eepfs_read`](libdragon_sys::eepfs_read) for details.
-    pub fn read_into<T>(&self, path: &dfs::DfsPathBuf, dest: &mut [T]) -> Result<()> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn read_into<S, T: AsRef<dfs::Path>>(&self, path: T, dest: &mut [S]) -> Result<()> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = Box::pin(CString::new(path_bytes).unwrap());
-        let size = dest.len() * ::core::mem::size_of::<T>();
+        let size = dest.len() * ::core::mem::size_of::<S>();
         let v = unsafe { libdragon_sys::eepfs_read(cpath.as_ptr(), dest.as_ptr() as *mut _, size) };
         if v != EEPFS_ESUCCESS { return Err(LibDragonError::EepfsError { error: v.into() }) }
         Ok(())
@@ -111,10 +111,10 @@ impl Eepfs {
     /// Writes an entire file to the EEPROM filesystem
     /// 
     /// See [`eepfs_write`](libdragon_sys::eepfs_write) for details.
-    pub fn write<T>(&mut self, path: &dfs::DfsPathBuf, src: &[T]) -> Result<()> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn write<S, T: AsRef<dfs::Path>>(&mut self, path: T, src: &[S]) -> Result<()> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = Box::pin(CString::new(path_bytes).unwrap());
-        let size = src.len() * ::core::mem::size_of::<T>();
+        let size = src.len() * ::core::mem::size_of::<S>();
         let v = unsafe { libdragon_sys::eepfs_write(cpath.as_ptr(), src.as_ptr() as *const _, size) };
         if v != EEPFS_ESUCCESS { return Err(LibDragonError::EepfsError { error: v.into() }) }
         Ok(())
@@ -123,8 +123,8 @@ impl Eepfs {
     /// Erases a file in the EEPROM filesystem
     /// 
     /// See [`eepfs_erase`](libdragon_sys::eepfs_erase) for details.
-    pub fn erase(&mut self, path: &dfs::DfsPathBuf) -> Result<()> {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn erase<T: AsRef<dfs::Path>>(&mut self, path: T) -> Result<()> {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = Box::pin(CString::new(path_bytes).unwrap());
         let v = unsafe { libdragon_sys::eepfs_erase(cpath.as_ptr()) };
         if v != EEPFS_ESUCCESS { return Err(LibDragonError::EepfsError { error: v.into() }) }

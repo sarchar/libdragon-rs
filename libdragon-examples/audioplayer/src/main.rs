@@ -2,7 +2,6 @@
 #![no_main]
 
 use libdragon::*;
-use libdragon::dfs::{Dir, DfsPathBuf};
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::Graphics;
 
@@ -24,7 +23,7 @@ extern "C" fn main() -> ! {
     mixer::init(16);  // Initialize up to 16 channels
 
     let mut music_files = vec![];
-    let mut dir = Dir::findfirst("rom:/").unwrap();
+    let mut dir = dfs::Dir::findfirst("rom:/").unwrap();
     loop {
         if dir.d_type().unwrap() == dfs::EntryType::File {
             let mf = dir.d_name();
@@ -48,12 +47,12 @@ extern "C" fn main() -> ! {
         if xm.is_none() && ym.is_none() {
             let slower = music_files[play_index].to_lowercase();
             if slower.ends_with(".xm64") {
-                let mut newxm = Xm64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
+                let mut newxm = Xm64::open(dfs::PathBuf::from(&music_files[play_index])).unwrap();
                 newxm.set_loop(true);
                 newxm.play(0);
                 xm = Some(newxm);
             } else if slower.ends_with(".ym64") {
-                let mut newym = Ym64::open(DfsPathBuf::from(&music_files[play_index])).unwrap();
+                let mut newym = Ym64::open(dfs::PathBuf::from(&music_files[play_index])).unwrap();
                 newym.play(0);
                 ym_playing = true;
                 ym = Some(newym);

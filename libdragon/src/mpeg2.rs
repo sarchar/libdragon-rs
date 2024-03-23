@@ -11,8 +11,8 @@ impl Mpeg2 {
     /// Create a new [Mpeg2] object.
     ///
     /// See [`mpeg2_open`](libdragon_sys::mpeg2_open) for details.
-    pub fn new(path: &dfs::DfsPathBuf, output_width: usize, output_height: usize) -> Self {
-        let path_bytes: &[u8] = path.as_bytes();
+    pub fn new<T: AsRef<dfs::Path>>(path: T, output_width: usize, output_height: usize) -> Self {
+        let path_bytes: &[u8] = path.as_ref().as_bytes();
         let cpath = CString::new(path_bytes).unwrap();
 
         let mut tmp: core::mem::MaybeUninit<libdragon_sys::mpeg2_t> = core::mem::MaybeUninit::uninit();

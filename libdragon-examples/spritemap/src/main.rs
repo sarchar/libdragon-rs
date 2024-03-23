@@ -5,7 +5,6 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use libdragon::*;
 
-use libdragon::dfs::DfsPathBuf;
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::Graphics;
 use libdragon::sprite::Sprite;
@@ -21,9 +20,9 @@ extern "C" fn main() -> ! {
     joypad::init();
     timer::init();
 
-    let mudkip     = Sprite::load(DfsPathBuf::from("rom:/mudkip.sprite")).unwrap();
-    let earthbound = Sprite::load(DfsPathBuf::from("rom:/earthbound.sprite")).unwrap();
-    let plane      = Sprite::load(DfsPathBuf::from("rom:/plane.sprite")).unwrap();
+    let mudkip     = Sprite::load(dfs::PathBuf::from("rom:/mudkip.sprite")).unwrap();
+    let earthbound = Sprite::load(dfs::PathBuf::from("rom:/earthbound.sprite")).unwrap();
+    let plane      = Sprite::load(dfs::PathBuf::from("rom:/plane.sprite")).unwrap();
 
     let animcounter = Arc::new(AtomicU32::new(0));
     let animcounter_clone = animcounter.clone();

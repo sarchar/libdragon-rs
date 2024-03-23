@@ -4,13 +4,13 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::dfs::{Read, DfsPathBuf};
+use libdragon::dfs::Read;
 use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
 use libdragon::graphics::{make_color, Graphics};
 use libdragon::sprite::Sprite;
 
 fn read_sprite(filename: &str) -> Sprite {
-    let mut fp = dfs::File::open(&DfsPathBuf::from(filename), "r").unwrap();
+    let mut fp = dfs::File::open(dfs::PathBuf::from(filename), "r").unwrap();
     let size = fp.size().unwrap();
     let mut buf = Vec::new();
     buf.resize(size, 0u8);
