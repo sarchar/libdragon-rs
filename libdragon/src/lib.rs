@@ -47,6 +47,8 @@ pub mod debug;
 pub mod dfs;
 /// Display subsystem
 pub mod display;
+/// Dynammic library loader (low-level)
+pub mod dlfcn;
 /// DMA controller
 pub mod dma;
 /// Management of EEPROM for saves
@@ -106,6 +108,7 @@ pub use joybus::JoybusGetter;
 pub enum LibDragonError {
     AccessoryIoError { error: joybus::AccessoryIoStatus },
     DfsError { error: dfs::DfsError },
+    DlError { error: dlfcn::Error },
     EepfsError { error: eepromfs::EepfsError },
     ErrnoError { errno: u32 },
     MemPakError { code: i32 },
