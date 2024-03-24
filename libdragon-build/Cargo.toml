@@ -1,8 +1,14 @@
 [package]
 name = "libdragon-build"
-version = "0.1.0"
-edition = "2021"
+description = "Tools to assist building libdragon-rs N64 programs"
 rust-version.workspace = true
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 execute = "0.2"

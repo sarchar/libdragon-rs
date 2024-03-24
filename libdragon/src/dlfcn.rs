@@ -20,7 +20,7 @@ bitflags! {
 }
 
 /// Wrapper around dl* function error returns
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Error {
     /// An error occurred in dlopen()
     DlOpenError,

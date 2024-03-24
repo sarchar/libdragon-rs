@@ -53,7 +53,7 @@ pub type PathBuf = typed_path::PathBuf<typed_path::UnixEncoding>;
 pub type Path = typed_path::Path<typed_path::UnixEncoding>;
 
 /// Mapping from the various LibDragon DFS_E* types into an enum
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DfsError {
     /// Bad filesystem
     NoFS,

@@ -167,7 +167,7 @@ pub unsafe fn exec<T,U>(inblock: &[T], outblock: &mut [U]) {
 /// Joybus accessory read/write status values
 ///
 /// See [`joybus_accessory_io_status_t`](libdragon_sys::joybus_accessory_io_status_t) for details.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AccessoryIoStatus {
     Ok, NoDevice, NoPak, BadCrc
 }

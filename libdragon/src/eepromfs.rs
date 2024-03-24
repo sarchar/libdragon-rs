@@ -3,7 +3,7 @@ use crate::*;
 pub const EEPFS_ESUCCESS: i32 = libdragon_sys::EEPFS_ESUCCESS as i32;
 
 /// EEPROM filesystem error codes
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EepfsError {
     /// Input parameters invalid
     BadInput,

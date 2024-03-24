@@ -11,7 +11,16 @@ default-members = [
 ]
 
 package.rust-version = "1.75.0"
+package.edition = "2021"
+package.version = "0.1.0"
+package.authors = ["Chuck <chuck+github@borboggle.com>"]
+package.license = "FreeBSD License"
+package.repository = "https://github.com/sarchar/libdragon-rs"
+package.keywords = ["libdragon", "n64", "n64dev", "gamedev"]
+package.categories = ["api-bindings", "embedded", "game-development", "no-std", "multimedia"]
 resolver = "2"
 
 [profile.dev]
 opt-level = 2 # "some optimizations"
+
+

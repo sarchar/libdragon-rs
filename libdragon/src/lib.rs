@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(asm_experimental_arch)]
 #![feature(panic_info_message)]
+#![feature(error_in_core)]
 #![feature(ascii_char)]
 
 use core::arch::asm;
@@ -105,7 +106,7 @@ pub use joybus::AccessoryGetter;
 #[doc(hidden)]
 pub use joybus::JoybusGetter;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LibDragonError {
     AccessoryIoError { error: joybus::AccessoryIoStatus },
     DfsError { error: dfs::DfsError },
@@ -122,6 +123,18 @@ impl From<core::str::Utf8Error> for LibDragonError {
         Self::Utf8Error { error: Some(error) }
     }
 }
+
+impl core::fmt::Display for LibDragonError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // TODO what is the right way to format errors?
+        write!(f, "a libdragon error occurred")
+    }
+}
+
+impl core::error::Error for LibDragonError {}
+
+unsafe impl core::marker::Sync for LibDragonError {}
+unsafe impl core::marker::Send for LibDragonError {}
 
 pub type Result<T> = core::result::Result<T, LibDragonError>;
 
@@ -328,7 +341,9 @@ impl<'a, T> N64Pointer<'a> for [T] {
         }
     }
 
-    ///
+    /// Invalidate the cache behind this slice. See [data_cache_hit_invalidate].
+    /// The slice needs to be aligned to 16 bytes and a multiple of 16 bytes in size, otherwise
+    /// a panic occurs.
     fn cache_hit_invalidate(&self, write_back: bool) {
         let size = self.len() * ::core::mem::size_of::<T>();
         data_cache_hit_invalidate(self.as_ptr(), size, write_back);
@@ -403,7 +418,7 @@ pub fn bss_end<T>() -> &'static mut [T] {
 #[inline] pub fn heap_start_addr<T>() -> &'static mut [T] { bss_end() }
 
 /// Memory barrier
-#[inline(always)] pub fn memory_barrier() { unsafe { core::arch::asm!(""); } }
+#[inline(always)] pub fn memory_barrier() { unsafe { asm!(""); } }
 
 /// Ticks helper functions.
 pub mod ticks {
