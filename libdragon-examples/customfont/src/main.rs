@@ -4,9 +4,9 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::Graphics;
-use libdragon::sprite::Sprite;
+use display::{Resolution, BitDepth, Gamma, FilterOptions};
+use graphics::Graphics;
+use sprite::Sprite;
 
 #[no_mangle]
 extern "C" fn main() -> ! {
@@ -30,11 +30,11 @@ extern "C" fn main() -> ! {
     g.fill_screen(0);
 
     // Set the text output color
-    g.set_color(0xFFFF_FFFF, 0);
+    graphics::set_color(0xFFFF_FFFF, 0);
 
     g.draw_text(20, 20, "Using default font!");
 
-    g.set_font_sprite(custom_font);
+    graphics::set_font_sprite(custom_font);
 
     g.draw_text(20, 40, "Using custom font!");
 

@@ -4,8 +4,8 @@
 #[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::graphics::{make_color, Graphics};
-use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
+use graphics::{make_color, Graphics};
+use display::{Resolution, BitDepth, Gamma, FilterOptions};
 
 const WIDTH: [i32; 6] = [320, 640, 256, 512, 512, 640];
 const HEIGHT: [i32; 6] = [240, 480, 240, 480, 240, 240];
@@ -39,7 +39,7 @@ extern "C" fn main() -> ! {
         g.draw_line(0, 0            , WIDTH[res]-1, HEIGHT[res]-1, color);
         g.draw_line(0, HEIGHT[res]-1, WIDTH[res]-1, 0            , color);
 
-        g.set_color(make_color(0, 0, 0, 0xFF), 0);
+        graphics::set_color(make_color(0, 0, 0, 0xFF), 0);
         
         print_text(&mut g, "Video Resolution Test", WIDTH[res]/16 - 10, 3);
         match res {
@@ -64,7 +64,7 @@ extern "C" fn main() -> ! {
         print_text(&mut g, "0123456789", 0, 16);
         print_text(&mut g, "9876543210", WIDTH[res]/8 - 10, 16);
 
-        g.surface().show();
+        g.surface().unwrap().show();
 
         joypad::poll();
 

@@ -290,6 +290,9 @@ impl<'a> Surface<'a> {
 }
 
 impl<'a> Drop for Surface<'a> {
+    /// Free the backing memory of a surface
+    ///
+    /// See [`surface_free`](libdragon_sys::surface_free) for details.
     fn drop(&mut self) {
         if self.needs_free {
             unsafe {

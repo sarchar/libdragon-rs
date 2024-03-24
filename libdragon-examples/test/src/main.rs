@@ -1,13 +1,12 @@
 #![no_std]
 #![no_main]
 
-#[allow(unused_imports)]
 use libdragon::*;
 
-use libdragon::dfs::Read;
-use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::{make_color, Graphics};
-use libdragon::sprite::Sprite;
+use dfs::Read;
+use display::{Resolution, BitDepth, Gamma, FilterOptions};
+use graphics::{make_color, Graphics};
+use sprite::Sprite;
 
 fn read_sprite(filename: &str) -> Sprite {
     let mut fp = dfs::File::open(dfs::PathBuf::from(filename), "r").unwrap();
@@ -74,8 +73,8 @@ extern "C" fn main() -> ! {
         g.draw_box(110, 80, 20, 20, make_color(85, 85, 85, 255));
 
         /* Shade box */
-        for i in 0..256 {
-            g.draw_box(20 + i, 120, 1, 20, make_color(i, i, i, 256));
+        for i in 0..=255 as u8 {
+            g.draw_box(20 + i as i32, 120, 1, 20, make_color(i, i, i, 255));
         }
 
         /* Display sprite (16bpp ones will only display in 16bpp mode, same with 32bpp) */
@@ -95,7 +94,7 @@ extern "C" fn main() -> ! {
         g.draw_sprite_trans(170, 20, &green16);
         g.draw_sprite_trans(160, 30, &blue16);
 
-        g.surface().show();
+        g.surface().unwrap().show();
 
         joypad::poll();
 

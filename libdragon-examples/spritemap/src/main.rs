@@ -36,7 +36,7 @@ extern "C" fn main() -> ! {
         let mut g = Graphics::new(display::get());
 
         g.fill_screen(0xFFFF_FFFF);
-        g.set_color(0, 0xFFFF_FFFF);
+        graphics::set_color(0, 0xFFFF_FFFF);
 
         match mode {
             0 => {
@@ -45,7 +45,7 @@ extern "C" fn main() -> ! {
                 g.draw_sprite_trans(50, 50, &mudkip);
                 g.draw_sprite_stride(20, 100, &earthbound, if ((a / 15) & 1) != 0 { 1 } else { 0 });
                 g.draw_sprite_stride(50, 100, &earthbound, (((a / 8) & 7) * 2) as i32);
-                g.surface().show();
+                g.surface().unwrap().show();
             },
             1 => {
                 g.draw_text(20, 20, "Hardware spritemap test");

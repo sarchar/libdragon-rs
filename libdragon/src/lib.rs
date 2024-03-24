@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(asm_experimental_arch)]
 #![feature(panic_info_message)]
+#![feature(ascii_char)]
 
 use core::arch::asm;
 
@@ -113,12 +114,12 @@ pub enum LibDragonError {
     ErrnoError { errno: u32 },
     MemPakError { code: i32 },
     UsbError { code: i8 },
-    Utf8Error { error: core::str::Utf8Error },
+    Utf8Error { error: Option<core::str::Utf8Error> },
 }
 
 impl From<core::str::Utf8Error> for LibDragonError {
     fn from(error: core::str::Utf8Error) -> Self {
-        Self::Utf8Error { error: error }
+        Self::Utf8Error { error: Some(error) }
     }
 }
 
