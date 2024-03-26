@@ -223,27 +223,27 @@ pub fn libdragon_printf(msg: &str) -> i32 {
 /// eprint implementation that displays messages to the LibDragon debug log
 #[macro_export]
 macro_rules! eprint {
-    ($($arg:tt)*) => ({ let _ = $crate::libdragon_fprintf(&format!($($arg)*)); });
+    ($($arg:tt)*) => ({ let _ = $crate::libdragon_fprintf(&$crate::format!($($arg)*)); });
 }
 
 /// eprintln implementation that displays messages to the LibDragon debug log
 #[macro_export]
 macro_rules! eprintln {
     () => ($crate::eprint!("\n"));
-    ($($arg:tt)*) => ($crate::eprint!("{}\n", format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::eprint!("{}\n", ::core::format_args!($($arg)*)));
 }
 
 /// print implementation that displays messages to the LibDragon console
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ({ let _ = $crate::libdragon_printf(&format!($($arg)*)); });
+    ($($arg:tt)*) => ({ let _ = $crate::libdragon_printf(&$crate::format!($($arg)*)); });
 }
 
 /// println implementation that displays messages to the LibDragon console
 #[macro_export]
 macro_rules! println {
     () => ($crate::print!("\n"));
-    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::print!("{}\n", ::core::format_args!($($arg)*)));
 }
 
 // LLVM clobbers $gp, which is used by the C code.  This is an _attempt_ at fixing
