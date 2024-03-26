@@ -5,6 +5,7 @@ lb-finish-rom:
         "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64sym "$ELF_FILE" "$ELF_FILE.sym"; \
         cp "$ELF_FILE" "$ELF_FILE.stripped"; \
         "$DEP_LIBDRAGON_SYS_TOOLCHAIN_BIN"strip "$ELF_FILE.stripped"; \
+        "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/n64elfcompress -o `dirname "$ELF_FILE"` -c "$ROM_COMPRESSION_LEVEL" "$ELF_FILE.stripped"; \
     fi
 
     @if [ -f "$ELF_FILE.dfs" ]; then \
@@ -36,11 +37,11 @@ lb-build-assets:
             if [ "$sprite" -nt "$fs/$fn.sprite" -o ! -f "$fs/$fn.sprite" ]; then 
                 echo Compiling $sprite
                 if [ "$fn" = "n64brew" ]; then
-                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format RGBA16 --tiles 32,32 "$sprite"
+                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 1 -o "$fs" --format RGBA16 --tiles 32,32 "$sprite"
                 elif [ "$fn" = "tiles" ]; then
-                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" --format CI4 --tiles 32,32 "$sprite"
+                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 1 -o "$fs" --format CI4 --tiles 32,32 "$sprite"
                 else 
-                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 0 -o "$fs" "$sprite"
+                    "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mksprite -c 1 -o "$fs" "$sprite"
                 fi
             fi
         done

@@ -5,10 +5,10 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use libdragon::*;
 
-use libdragon::display::{Resolution, BitDepth, Gamma, FilterOptions};
-use libdragon::graphics::Graphics;
-use libdragon::sprite::Sprite;
-use libdragon::timer::Timer;
+use display::{Resolution, BitDepth, Gamma, FilterOptions};
+use graphics::Graphics;
+use sprite::Sprite;
+use timer::Timer;
 
 #[no_mangle]
 extern "C" fn main() -> ! {
@@ -20,6 +20,7 @@ extern "C" fn main() -> ! {
     joypad::init();
     timer::init();
 
+    // asset::init_compression(asset::CompressionLevel::Two);
     let mudkip     = Sprite::load(dfs::PathBuf::from("rom:/mudkip.sprite")).unwrap();
     let earthbound = Sprite::load(dfs::PathBuf::from("rom:/earthbound.sprite")).unwrap();
     let plane      = Sprite::load(dfs::PathBuf::from("rom:/plane.sprite")).unwrap();

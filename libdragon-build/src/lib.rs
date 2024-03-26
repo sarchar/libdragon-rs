@@ -15,12 +15,15 @@ pub struct Build {
     env_filename: Option<String>,
     just_filename: Option<String>,
     game_name: Option<String>,
+    rom_compression_level: u32,
     rsp_compile: bool,
 }
 
 impl Build {
     pub fn new() -> Self {
-        Self::default()
+        let mut default = Self::default();
+        default.rom_compression_level = 1;
+        default
     }
 
     pub fn set_env_file(&mut self, filename: &str) -> &mut Self {
@@ -40,6 +43,12 @@ impl Build {
 
     pub fn set_game_name(&mut self, name: &str) -> &mut Self {
         self.game_name = Some(name.to_owned());
+        self
+    }
+
+    pub fn set_rom_compression_level(&mut self, rom_compression_level: u32) -> &mut Self {
+        assert!(rom_compression_level <= 3);
+        self.rom_compression_level = rom_compression_level;
         self
     }
 
@@ -71,6 +80,9 @@ impl Build {
             // Export game name
             let game_name = self.game_name.clone().unwrap_or("GAME".to_owned());
             vars.push(("GAME_NAME".to_owned(), game_name));
+
+            // Export rom compression level
+            vars.push(("ROM_COMPRESSION_LEVEL".to_owned(), format!("{}", self.rom_compression_level)));
 
             let mut fp = File::create(src_dir.join(&env_filename))?;
             for var in vars {
