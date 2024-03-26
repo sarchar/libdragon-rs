@@ -223,7 +223,7 @@ pub fn libdragon_printf(msg: &str) -> i32 {
 /// eprint implementation that displays messages to the LibDragon debug log
 #[macro_export]
 macro_rules! eprint {
-    ($($arg:tt)*) => ({ let _ = libdragon_fprintf(&format!($($arg)*)); });
+    ($($arg:tt)*) => ({ let _ = $crate::libdragon_fprintf(&format!($($arg)*)); });
 }
 
 /// eprintln implementation that displays messages to the LibDragon debug log
@@ -236,7 +236,7 @@ macro_rules! eprintln {
 /// print implementation that displays messages to the LibDragon console
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ({ let _ = libdragon_printf(&format!($($arg)*)); });
+    ($($arg:tt)*) => ({ let _ = $crate::libdragon_printf(&format!($($arg)*)); });
 }
 
 /// println implementation that displays messages to the LibDragon console
