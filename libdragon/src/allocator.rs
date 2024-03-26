@@ -21,7 +21,7 @@ unsafe impl GlobalAlloc for LibdragonAllocator {
 
         // aligned_alloc requries size to be a multiple of alignment
         // return null on allocation error and let Rust libraries handle the error
-        aligned_alloc(alignment as usize, size as usize) as *mut u8
+        aligned_alloc(alignment.into(), size.into()) as *mut u8
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
