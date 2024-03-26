@@ -137,14 +137,14 @@ macro_rules! define_rsp_ucode {
                 static mut [<$sname _data_end>]: ::core::ffi::c_void;
             }
 
-            let mut $sname: rsp::RspUcode = rsp::RspUcode {
-                rsp_ucode: Box::pin(rsp::RspUcodeT {
+            let mut $sname: $crate::rsp::RspUcode = $crate::rsp::RspUcode {
+                rsp_ucode: Box::pin($crate::rsp::RspUcodeT {
                     code: unsafe { &mut [<$sname _text_start>] as *mut _ },
                     code_end: unsafe { &mut [<$sname _text_end>] as *mut _ },
                     data: unsafe { &mut [<$sname _data_start>] as *mut _ },
                     data_end: unsafe { &mut [<$sname _data_end>] as *mut _ },
 
-                    name: 0 as *const _, //{ stringify!($sname) },
+                    name: 0 as *const _, // TODO { stringify!($sname) },
 
                     start_pc: 0,
                     crash_handler: None,
@@ -152,7 +152,6 @@ macro_rules! define_rsp_ucode {
                 }),
                 overlay_id: None,
             };
-
         }
     }
 }
