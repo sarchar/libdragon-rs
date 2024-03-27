@@ -45,7 +45,7 @@ pub struct Primitive<'a> {
     phantom: core::marker::PhantomData<&'a u8>,
 }
 
-impl<'a> Model64<'a> {
+impl Model64<'_> {
     /// Load a Model64 from the filesystem
     ///
     /// See [`model64_load`](libdragon_sys::model64_load) for details.
@@ -71,7 +71,7 @@ impl<'a> Model64<'a> {
     /// Load a sprite from a buffer
     ///
     /// See [`model64_load_buf`](libdragon_sys::model64_load_buf) for details.
-    pub fn load_buf<'b, T>(buf: &'b mut [T]) -> Model64<'b> {
+    pub fn load_buf<'a, T>(buf: &'a mut [T]) -> Model64<'a> {
         let ptr = unsafe {
             libdragon_sys::model64_load_buf(buf.as_mut_ptr() as *mut _, (buf.len() * core::mem::size_of::<T>()) as i32)
         };
@@ -85,7 +85,7 @@ impl<'a> Model64<'a> {
     /// Clone a Model64
     ///
     /// See [`model64_clone`](libdragon_sys::model64_clone) for details.
-    pub fn clone<'b>(&self) -> Model64<'b> {
+    pub fn clone<'a>(&self) -> Model64<'a> {
         let ptr = unsafe {
             libdragon_sys::model64_clone(self.ptr)
         };
@@ -106,7 +106,7 @@ impl<'a> Model64<'a> {
     ///
     /// See [`model64_get_mesh`](libdragon_sys::model64_get_mesh) for details.
     #[inline]
-    pub fn get_mesh(&self, mesh_index: usize) -> Mesh<'a> { 
+    pub fn get_mesh<'a>(&'a self, mesh_index: usize) -> Mesh<'a> { 
         let ptr = unsafe { 
             libdragon_sys::model64_get_mesh(self.ptr, mesh_index as u32) 
         };
@@ -127,7 +127,7 @@ impl<'a> Model64<'a> {
     ///
     /// See [`model64_get_node`](libdragon_sys::model64_get_node) for details.
     #[inline]
-    pub fn get_node(&self, node_index: usize) -> Model64Node<'a> { 
+    pub fn get_node<'a>(&'a self, node_index: usize) -> Model64Node<'a> { 
         let ptr = unsafe { 
             libdragon_sys::model64_get_node(self.ptr, node_index as u32) 
         };
@@ -141,7 +141,7 @@ impl<'a> Model64<'a> {
 
     /// Return the first node with the specified name in the model.
     #[inline]
-    pub fn search_node(&self, name: &str) -> Option<Model64Node<'a>> {
+    pub fn search_node<'a>(&'a self, name: &str) -> Option<Model64Node<'a>> {
         let c_name = CString::new(name).unwrap();
         let ptr = unsafe {
             libdragon_sys::model64_search_node(self.ptr, c_name.as_ptr())
@@ -253,7 +253,7 @@ impl Drop for Model64<'_> {
     fn drop(&mut self) { unsafe { libdragon_sys::model64_free(self.ptr); } }
 }
 
-impl<'a> Mesh<'a> {
+impl Mesh<'_> {
     /// Return the number of primitives in this mesh.
     ///
     /// See [`model64_get_primitive_count`](libdragon_sys::model64_get_primitive_count) for details.
@@ -263,7 +263,7 @@ impl<'a> Mesh<'a> {
     ///
     /// See [`model64_get_primitive`](libdragon_sys::model64_get_primitive) for details.
     #[inline]
-    pub fn get_primtive(&self, primitive_index: u32) -> Primitive<'a> {
+    pub fn get_primitive<'a>(&'a self, primitive_index: u32) -> Primitive<'a> {
         let ptr = unsafe {
             libdragon_sys::model64_get_primitive(self.ptr, primitive_index)
         };
@@ -279,7 +279,7 @@ impl<'a> Mesh<'a> {
     #[inline] pub fn draw(&self) { unsafe { libdragon_sys::model64_draw_mesh(self.ptr); } }
 }
 
-impl<'a> Model64Node<'a> {
+impl Model64Node<'_> {
     /// Sets the position of a node in a model relative to its parent
     ///
     /// See [`model64_set_node_pos`](libdragon_sys::model64_set_node_pos) for details.
@@ -339,7 +339,7 @@ impl<'a> Model64Node<'a> {
     #[inline] pub fn draw(&self) { unsafe { libdragon_sys::model64_draw_node(self.model_ptr, self.ptr); } }
 }
 
-impl<'a> Primitive<'a> {
+impl Primitive<'_> {
     /// Draw a single primitive
     ///
     /// See [`model64_draw_primitive`](libdragon_sys::model64_draw_primitive) for details.
