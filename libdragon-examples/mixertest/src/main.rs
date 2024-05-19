@@ -22,7 +22,7 @@ extern "C" fn main() -> ! {
 
     dfs::init(None).unwrap_or_else(|e| panic!("Could not initialize filesystem: {:?}", e));
     
-    audio::init(44100, 4);
+    audio::init(48000, 4);
     mixer::init(16);  // Initialize up to 16 channels
 
 	// Bump maximum frequency of music channel to 128k.

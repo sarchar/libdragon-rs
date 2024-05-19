@@ -204,6 +204,14 @@ pub fn get<'a>() -> Surface<'a> {
     Surface::from_ptr(ptr)
 }
 
+/// Return a memory surface that can be used as a Z-buffer for the current resolution
+///
+/// See [`display_get_zbuf`](libdragon_sys::display_get_zbuf) for details.
+pub fn get_zbuf<'a>() -> Surface<'a> {
+    let ptr = unsafe { libdragon_sys::display_get_zbuf() };
+    Surface::from_ptr(ptr)
+}
+
 /// Try getting a display surface
 ///
 /// See [`display_try_get`](libdragon_sys::display_try_get) for details.

@@ -117,21 +117,37 @@ async fn main() -> Result<()> {
         }
     }
 
+    // Create the build directory
+    let libdragon_build_dir = out_dir.clone().join("libdragon_build");
+    let mut mkdir = Command::new("mkdir");
+    mkdir.arg("-p").arg(&libdragon_build_dir);
+    let _ = mkdir.execute_check_exit_status_code(0); // Let's hope this doesn't ever fail
+
     // build libdragon
     let mut make = Command::new("make");
     make.arg("-C")
         .arg(libdragon_dir.clone().into_os_string())
-        .arg(format!("BUILD_DIR={}", out_dir.clone().join("libdragon_build").display()))
+        .current_dir(&libdragon_build_dir)
         .arg("libdragon")
-        .arg("tools");
-    if make.execute_check_exit_status_code(0).is_err() {
-        eprintln!("There was an error building libdragon");
-        exit(1);
+        .arg("tools")
+        .arg("-j").arg("4");
+    eprintln!("make: {:?}", make);
+    let make_output = make.execute_output().unwrap();
+    if let Some(exit_code) = make_output.status.code() {
+        if exit_code != 0 {
+            eprintln!("There was an error building libdragon");
+            eprintln!("stdout: {}", String::from_utf8(make_output.stdout).unwrap());
+            eprintln!("stderr: {}", String::from_utf8(make_output.stderr).unwrap());
+            exit(1);
+        }
+        eprintln!("make output: {:?}", make_output);
     }
 
     // install libdragon and tools
     let mut install = Command::new("make");
-    install.arg("-C").arg(libdragon_dir.clone().into_os_string()).arg("install").arg("tools-install");
+    install.arg("-C").arg(libdragon_dir.clone().into_os_string())
+                     .current_dir(&libdragon_build_dir)
+                     .arg("install").arg("tools-install");
     if install.execute_check_exit_status_code(0).is_err() {
         eprintln!("There was an error installing libdragon");
         exit(1);
@@ -142,7 +158,7 @@ async fn main() -> Result<()> {
     println!("cargo:rustc-link-lib=static=dragon");
     println!("cargo:rustc-link-lib=static=dragonsys");
 
-    println!("cargo:rustc-link-search=native={}/lib/gcc/mips64-libdragon-elf/13.2.0", toolchain_dir.display());
+    println!("cargo:rustc-link-search=native={}/lib/gcc/mips64-libdragon-elf/14.1.0", toolchain_dir.display());
     println!("cargo:rustc-link-lib=static=c");
     println!("cargo:rustc-link-lib=static=g");
     println!("cargo:rustc-link-lib=static=nosys");
@@ -153,6 +169,7 @@ async fn main() -> Result<()> {
 
     let bindings = bindgen::Builder::default()
                         .clang_arg(format!("-I{}/mips64-libdragon-elf/include", toolchain_dir.display()))
+                        .clang_args(&["-target", "mips-nintendo64-none", "-mabi=n32", "-DN64"])
                         .header("wrapper.h")
                         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
                         .parse_callbacks(Box::new(Cb {}))

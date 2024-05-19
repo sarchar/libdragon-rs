@@ -351,7 +351,9 @@ pub mod consts {
     pub const DMEM_BUFFER_SIZE: usize = libdragon_sys::RSPQ_DMEM_BUFFER_SIZE as usize;
 
     /// Number of overlay ID bits (0-F)
-    pub const RSPQ_OVERLAY_ID_BITS: usize = libdragon_sys::RSPQ_OVERLAY_ID_BITS as usize;
+    pub const OVERLAY_ID_BITS: usize = libdragon_sys::RSPQ_OVERLAY_ID_BITS as usize;
+    /// Shift to isolate overlay ID bits
+    pub const OVERLAY_ID_SHIFT: usize = libdragon_sys::RSPQ_OVERLAY_ID_SHIFT as usize;
     /// Number of overlay command bits
     pub const OVERLAY_CMD_BITS: usize = libdragon_sys::RSPQ_OVERLAY_CMD_BITS as usize;
     /// Maximum number of overlays that can be registered
@@ -414,16 +416,13 @@ pub mod consts {
     /// The requested command is not defined in the overlay
     pub const ASSERT_INVALID_COMMAND: u32 = libdragon_sys::ASSERT_INVALID_COMMAND;
 
-    pub const PROFILE_OVERLAY_COUNT: usize = libdragon_sys::RSPQ_PROFILE_OVERLAY_COUNT as usize;
-
-    pub const PROFILE_SLOT_SIZE: usize = libdragon_sys::RSPQ_PROFILE_SLOT_SIZE as usize;
+    pub const PROFILE_CSLOT_WAIT_CPU: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_WAIT_CPU as usize;
+    pub const PROFILE_CSLOT_WAIT_RDP: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_WAIT_RDP as usize;
+    pub const PROFILE_CSLOT_WAIT_RDP_SYNCFULL: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_WAIT_RDP_SYNCFULL as usize;
+    pub const PROFILE_CSLOT_WAIT_RDP_SYNCFULL_MULTI: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_WAIT_RDP_SYNCFULL_MULTI as usize;
+    pub const PROFILE_CSLOT_OVL_SWITCH: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_OVL_SWITCH as usize;
+    pub const PROFILE_CSLOT_COUNT: usize = libdragon_sys::RSPQ_PROFILE_CSLOT_COUNT as usize;
     pub const PROFILE_SLOT_COUNT: usize = libdragon_sys::RSPQ_PROFILE_SLOT_COUNT as usize;
-    pub const PROFILE_BUILTIN_SLOT: usize = libdragon_sys::RSPQ_PROFILE_BUILTIN_SLOT as usize;
-    pub const PROFILE_IDLE_SLOT: usize = libdragon_sys::RSPQ_PROFILE_IDLE_SLOT as usize;
-    pub const PROFILE_IDLE_RDP_SLOT: usize = libdragon_sys::RSPQ_PROFILE_IDLE_RDP_SLOT as usize;
-    pub const PROFILE_IDLE_SYNC_SLOT: usize = libdragon_sys::RSPQ_PROFILE_IDLE_SYNC_SLOT as usize;
-    pub const PROFILE_RDPQ_SYNC_SLOT: usize = libdragon_sys::RSPQ_PROFILE_RDPQ_SYNC_SLOT as usize;
-    pub const PROFILE_OVL_SWITCH_SLOT: usize = libdragon_sys::RSPQ_PROFILE_OVL_SWITCH_SLOT as usize;
 }
 
 // rspq_profile.h

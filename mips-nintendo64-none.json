@@ -5,7 +5,7 @@
   "disable-redzone": true,
   "env": "unknown",
   "executables": true,
-  "features": "+mips3",
+  "features": "+mips3,-ptr64",
   "linker": "rust-lld",
   "linker-flavor": "ld.lld",
   "llvm-abiname": "n32",

@@ -1,6 +1,6 @@
 [package]
 name = "libdragon-sys"
-include = [ "linker.ld", "toolchain/" ]
+include = [ "build.rs", "src/", "wrapper.h", "linker.ld", "toolchain/", "libdragon/" ]
 links = "libdragon-sys"
 build = "build.rs"
 description = "Raw FFI bindings to libdragon"
@@ -12,6 +12,14 @@ license.workspace = true
 repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
+
+[lib]
+name = "libdragon_sys"
+path = "src/lib.rs"
+test = false
+bench = false
+doc = true
+crate-type = ["lib"]
 
 [build-dependencies]
 bindgen = { version = "0.69", features = ["experimental"] }

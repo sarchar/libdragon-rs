@@ -497,7 +497,7 @@ pub mod ticks {
 }
 
 /// See [`sys_bbplayer`](libdragon_sys::sys_bbplayer) for details.
-#[inline] pub fn sys_bbplayer() -> bool { unsafe { libdragon_sys::sys_bbplayer() } }
+#[inline] pub fn sys_bbplayer() -> bool { boot_consoletype() != 0 }
 
 /// Force a complete halt of all processors
 /// 

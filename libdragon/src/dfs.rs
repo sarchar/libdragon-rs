@@ -111,6 +111,7 @@ pub fn init(base_fs_loc: Option<u32>) -> Result<()> {
 /// Change directories to the specified path.
 ///
 /// See [`dfs_chdir`](libdragon_sys::dfs_chdir) for details.
+#[deprecated]
 pub fn chdir(path: &PathBuf) -> Result<()> {
     let path_bytes: &[u8] = path.as_bytes();
     let cpath = CString::new(path_bytes).unwrap();
@@ -146,6 +147,7 @@ impl From<i32> for EntryType {
 /// Find the first file or directory in a directory listing.
 ///
 /// See [`dfs_dir_findfirst`](libdragon_sys::dfs_dir_findfirst) for details.
+#[deprecated]
 pub fn dir_findfirst(path: &PathBuf) -> Result<DirEntry> {
     let path_bytes: &[u8] = path.as_bytes();
     let cpath = CString::new(path_bytes).unwrap();
@@ -167,6 +169,7 @@ pub fn dir_findfirst(path: &PathBuf) -> Result<DirEntry> {
 /// Find the next file or directory in a directory listing.
 ///
 /// See [`dfs_dir_findnext`](libdragon_sys::dfs_dir_findnext) for details.
+#[deprecated]
 pub fn dir_findnext() -> Result<DirEntry> {
     let mut namebuf = [0u8; MAX_FILENAME_LEN];
     let ret = unsafe {
@@ -553,5 +556,11 @@ impl<'a> Dir<'a> {
             DT_DIR => Ok(EntryType::Directory),
             _ => Err(LibDragonError::DfsError { error: DfsError::NotFound }),
         }
+    }
+
+    /// Size of the file
+    /// See [dir_t](libdragon_sys::dir_t) for more information.
+    pub fn d_size(&self) -> i64 {
+        self.dir.d_size as i64
     }
 }

@@ -9,6 +9,7 @@ pub const OVL_ID: u32 = libdragon_sys::RDPQ_OVL_ID;
 pub const CMD_NOOP: u32 = libdragon_sys::RDPQ_CMD_NOOP;
 pub const CMD_SET_LOOKUP_ADDRESS: u32 = libdragon_sys::RDPQ_CMD_SET_LOOKUP_ADDRESS;
 pub const CMD_FILL_RECTANGLE_EX: u32 = libdragon_sys::RDPQ_CMD_FILL_RECTANGLE_EX;
+pub const CMD_CLEAR_ZBUFFER: u32 = libdragon_sys::RDPQ_CMD_CLEAR_ZBUFFER;
 pub const CMD_RESET_RENDER_MODE: u32 = libdragon_sys::RDPQ_CMD_RESET_RENDER_MODE;
 pub const CMD_SET_COMBINE_MODE_2PASS: u32 = libdragon_sys::RDPQ_CMD_SET_COMBINE_MODE_2PASS;
 pub const CMD_PUSH_RENDER_MODE: u32 = libdragon_sys::RDPQ_CMD_PUSH_RENDER_MODE;
@@ -800,6 +801,9 @@ pub const ASSERT_SEND_INVALID_SIZE: u32 = libdragon_sys::RDPQ_ASSERT_SEND_INVALI
 pub const ASSERT_AUTOTMEM_FULL: u32 = libdragon_sys::RDPQ_ASSERT_AUTOTMEM_FULL as u32;
 /// Asserted if the TMEM is full during an auto-TMEM operation
 pub const ASSERT_AUTOTMEM_UNPAIRED: u32 = libdragon_sys::RDPQ_ASSERT_AUTOTMEM_UNPAIRED as u32;
+
+/// RDPQCmd_ClearZBuffer temporary buffer is too small
+pub const ASSERT_ZCLEAR_INVALID_BUFFER: u32 = libdragon_sys::RDPQ_ASSERT_ZCLEAR_INVALID_BUFFER as u32;
 
 pub const MAX_COMMAND_SIZE: u32 = libdragon_sys::RDPQ_MAX_COMMAND_SIZE as u32;
 /// RDPQ block minimum size (in 32-bit words)

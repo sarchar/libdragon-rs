@@ -68,7 +68,6 @@ static LIGHT_DIFFUSE: [[f32; 4]; 8] = [
 
 struct App<'a> {
     camera: Camera,
-    zbuffer: Surface<'a>,
     sprites: [Sprite<'a>; 4],
     textures: [u32; 4],
     texture_index: usize,
@@ -85,8 +84,6 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new() -> Self {
-        let zbuffer = Surface::alloc(TexFormat::Rgba16, display::get_width(), display::get_height());
-
         let sprites = [
             Sprite::load(dfs::PathBuf::from("rom:/circle0.sprite")).unwrap(),
             Sprite::load(dfs::PathBuf::from("rom:/diamond0.sprite")).unwrap(),
@@ -162,7 +159,6 @@ impl<'a> App<'a> {
                 distance: -10.0,
                 rotation: 0.0,
             },
-            zbuffer: zbuffer,
             sprites: sprites, // can't let sprites memory be dropped, as they contain the texture data
             textures: textures,
             texture_index: 0,
@@ -189,7 +185,8 @@ impl<'a> App<'a> {
 
     fn render(&mut self) {
         let disp = display::get();
-        rdpq::attach(&disp, Some(&self.zbuffer));
+        let zbuf = display::get_zbuf();
+        rdpq::attach(&disp, Some(&zbuf));
 
         gl::context_begin();
 
