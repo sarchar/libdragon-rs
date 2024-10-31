@@ -31,6 +31,16 @@ lb-build-assets:
     # compile assets
     # TODO need a way to specify custom arguments, perhaps in the project's build.rs script
     if [ -d assets ]; then
+
+        # MODEL64
+        for model in `find assets -name "*.glb"` ; do
+            fn=$(basename "$model" .glb)
+            if [ "$model" -nt "$fs/$fn.model64" -o ! -f "$fs/$fn.model64" ]; then
+                echo Compiling $model
+                "$DEP_LIBDRAGON_SYS_N64_TOOLDIR"/mkmodel -o "$fs" "$model"
+            fi
+        done
+
         # MKSPRITE
         for sprite in `find assets -name "*.png"` ; do 
             fn=$(basename "$sprite" .png)
