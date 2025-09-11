@@ -1,7 +1,7 @@
 {
-  "arch": "mips",
+  "arch": "mips64",
   "cpu": "mips3",
-  "data-layout": "E-m:m-p:32:32-i8:8:32-i16:16:32-i64:64-f32:32-f64:64-n32:64-S128-a:0:64",
+  "data-layout": "E-m:e-p:32:32-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
   "disable-redzone": true,
   "env": "unknown",
   "executables": true,

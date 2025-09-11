@@ -1,7 +1,5 @@
 #![no_std]
 #![feature(asm_experimental_arch)]
-#![feature(panic_info_message)]
-#![feature(error_in_core)]
 #![feature(ascii_char)]
 
 use core::arch::asm;

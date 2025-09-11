@@ -10,7 +10,7 @@ fn panic(info: &PanicInfo) -> ! {
         _ => (CString::new("<unknown>").unwrap(), 0)
     };
 
-    let msg = if let Some(args) = info.message() {
+    let msg = if let Some(args) = info.message().as_str() {
         CString::new(format!("{}", args).as_str()).unwrap()
     } else {
         CString::new("<unknown>").unwrap()
